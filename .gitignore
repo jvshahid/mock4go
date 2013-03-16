@@ -1,0 +1,8 @@
+*~
+src/launchpad.net/
+bin/
+*.a
+/gomock
+/test
+/main
+test.test
