@@ -38,3 +38,7 @@ func (suite *GoMockSuite) TestBasicMocking(c *C) {
 	gomock.Mock(OneReturnValueNoReceiver).Return("bar")
 	c.Assert(OneReturnValueNoReceiver(), Equals, "bar")
 }
+
+func (suite *GoMockSuite) TestNoMocking(c *C) {
+	c.Assert(OneReturnValueNoReceiver(), Equals, "foo")
+}
