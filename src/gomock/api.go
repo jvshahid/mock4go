@@ -1,35 +1,68 @@
 package gomock
 
-type MockedFunction struct {
+import (
+	"reflect"
+)
+
+type Function interface{}
+
+var Map = make(map[Function][]*FunctionCall)
+
+type FunctionCall struct {
 	args   []interface{}
 	values []interface{}
 }
 
-func Mock(fun interface{}, args ...interface{}) *MockedFunction {
-	return &MockedFunction{
+func Mock(fun Function, args ...interface{}) *FunctionCall {
+	call := &FunctionCall{
 		args: args,
 	}
+	funType := reflect.TypeOf(fun)
+	calls := Map[funType]
+	calls = append(calls, call)
+	Map[funType] = calls
+	return call
 }
 
-type MockedFunctionWithReceiver struct {
-	MockedFunction
+type MethodCall struct {
+	FunctionCall
 	receiver interface{}
 }
 
-func MockWithReceiver(fun interface{}, receiver interface{}, args ...interface{}) *MockedFunctionWithReceiver {
-	return &MockedFunctionWithReceiver{
-		MockedFunction: MockedFunction{
+func MockWithReceiver(fun Function, receiver interface{}, args ...interface{}) *MethodCall {
+	call := &MethodCall{
+		FunctionCall: FunctionCall{
 			args: args,
 		},
 		receiver: receiver,
 	}
+	return call
 }
 
-func (m *MockedFunction) Return(values ...interface{}) {
+func (m *FunctionCall) Return(values ...interface{}) {
 	m.values = values
 }
 
-func FunctionCalled(id int, args ...interface{}) []interface{} {
+// Returns the return values and true if the method/function is mocked
+// and the args match the expected values. Otherwise, it returns (nil, true)
+func FunctionCalled(fun Function, args ...interface{}) ([]interface{}, bool, error) {
+	funType := reflect.TypeOf(fun)
+	calls := Map[funType]
+	for _, call := range calls {
+		if len(call.args) > len(args) {
+			continue
+		}
+		for idx, arg := range call.args {
+			if !reflect.DeepEqual(arg, args[idx]) {
+				continue
+			}
+		}
+		return call.values, true, nil
+	}
 	// what should we do here
-	return nil
+	return nil, false, nil
+}
+
+func ResetMocks() {
+	Map = make(map[Function][]*FunctionCall)
 }

@@ -24,6 +24,10 @@ func (suite *GoMockSuite) SetUpTest(c *C) {
 	// setup the suite
 }
 
+func (suite *GoMockSuite) TearDownTest(c *C) {
+	gomock.ResetMocks()
+}
+
 type Function interface{}
 
 func (suite *GoMockSuite) TestBasicAssumptionsAboutFunctions(c *C) {
