@@ -17,7 +17,7 @@ func Mock(fun Function, args ...interface{}) *FunctionCall {
 	call := &FunctionCall{
 		args: args,
 	}
-	funType := reflect.TypeOf(fun)
+	funType := reflect.ValueOf(fun)
 	calls := Map[funType]
 	calls = append(calls, call)
 	Map[funType] = calls
@@ -46,7 +46,7 @@ func (m *FunctionCall) Return(values ...interface{}) {
 // Returns the return values and true if the method/function is mocked
 // and the args match the expected values. Otherwise, it returns (nil, true)
 func FunctionCalled(fun Function, args ...interface{}) ([]interface{}, bool, error) {
-	funType := reflect.TypeOf(fun)
+	funType := reflect.ValueOf(fun)
 	calls := Map[funType]
 	for _, call := range calls {
 		if len(call.args) > len(args) {

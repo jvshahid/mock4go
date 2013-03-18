@@ -41,6 +41,7 @@ func (suite *GoMockSuite) TestBasicAssumptionsAboutFunctions(c *C) {
 func (suite *GoMockSuite) TestBasicMocking(c *C) {
 	gomock.Mock(OneReturnValueNoReceiver).Return("bar")
 	c.Assert(OneReturnValueNoReceiver(), Equals, "bar")
+	c.Assert(OneReturnValueNoReceiver2(), Equals, "foo2")
 }
 
 func (suite *GoMockSuite) TestNoMocking(c *C) {
