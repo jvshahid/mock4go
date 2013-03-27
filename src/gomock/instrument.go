@@ -59,6 +59,8 @@ func functionName(f *ast.FuncDecl) ast.Expr {
 	}
 }
 
+// construct the return statement that converts the interface{} type
+// returned from gomock.FunctionCalled to the expected returned type
 func functionReturnExprs(f *ast.FuncDecl) []ast.Expr {
 	if f.Type.Results == nil {
 		return nil
@@ -85,7 +87,7 @@ func functionReturnExprs(f *ast.FuncDecl) []ast.Expr {
 //      return value[0].(Type1), value[1].(Type2)
 //    }
 // at the beginning of the given function declaration.
-func instrumentFunction(f *ast.FuncDecl) ast.Stmt {
+func instrumentFunction(f *ast.FuncDecl) {
 	returnStmts := functionReturnExprs(f)
 	returnValues := "_"
 	if returnStmts != nil {
@@ -142,19 +144,99 @@ func instrumentFunction(f *ast.FuncDecl) ast.Stmt {
 		Cond: condStmt,
 		Body: bodyStmt,
 	}
-	return stmt
+	body := f.Body
+	stmts := body.List
+	stmts = append([]ast.Stmt{stmt}, stmts...)
+	body.List = stmts
 	// return &ast.CallExpr{Fun: makeIdent("gomock.FunctionCalled"), Args: []ast.Expr{}}
+}
+
+func instrumentInterface(intrface *ast.InterfaceType) []ast.Decl {
+	declarations := make([]ast.Decl, 0)
+	declarations = append(declarations,
+		&ast.GenDecl{
+			Tok: token.TYPE,
+			Specs: []ast.Spec{
+				&ast.TypeSpec{
+					Name: &ast.Ident{
+						Name: "MockInterface",
+					},
+					Type: &ast.StructType{
+						Fields: &ast.FieldList{},
+					},
+				},
+			},
+		},
+	)
+	for _, fun := range intrface.Methods.List {
+		fmt.Printf("I'm here")
+		funType := fun.Type.(*ast.FuncType)
+		// add a general declaration one per return value to guarantee
+		// they are assigned the zero value, then return those variables
+		stmts := make([]ast.Stmt, 0)
+		returnVariables := make([]ast.Expr, 0)
+
+		for idx, returnValue := range funType.Results.List {
+			// add a declaration
+			name := fmt.Sprintf("_temp%d", idx)
+			returnVariables = append(returnVariables, &ast.Ident{
+				Name: name,
+			})
+			stmts = append(stmts, &ast.DeclStmt{
+				Decl: &ast.GenDecl{
+					Tok: token.VAR,
+					Specs: []ast.Spec{
+						&ast.ValueSpec{
+							Type: returnValue.Type,
+							Names: []*ast.Ident{
+								&ast.Ident{
+									Name: name,
+								},
+							},
+						},
+					},
+				},
+			})
+		}
+
+		stmts = append(stmts, &ast.ReturnStmt{
+			Results: returnVariables,
+		})
+
+		newDecl := &ast.FuncDecl{
+			Name: fun.Names[0],
+			Recv: &ast.FieldList{
+				List: []*ast.Field{
+					&ast.Field{
+						Names: []*ast.Ident{
+							&ast.Ident{
+								Name: "recv",
+							},
+						},
+						Type: &ast.StarExpr{
+							X: &ast.Ident{
+								Name: "MockInterface",
+							},
+						},
+					},
+				},
+			},
+			Type: funType,
+			Body: &ast.BlockStmt{
+				List: stmts,
+			},
+		}
+		instrumentFunction(newDecl)
+		declarations = append(declarations, newDecl)
+	}
+	return declarations
 }
 
 func InstrumentFunctions(f *ast.File) {
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
-			body := x.Body
-			stmts := body.List
-			stmt := instrumentFunction(x)
-			stmts = append([]ast.Stmt{stmt}, stmts...)
-			body.List = stmts
+			instrumentFunction(x)
 			if x.Recv != nil {
 				// fieldList := x.Recv.List[0]
 				// name := fieldList.Names[0]
@@ -162,6 +244,15 @@ func InstrumentFunctions(f *ast.File) {
 			} else {
 				// without receiver
 			}
+		case *ast.InterfaceType:
+			if x.Incomplete {
+				// TODO: what should we do here
+				panic("incomplete interface type")
+			}
+			fmt.Printf("decls: %v\n", f.Decls)
+			decls := instrumentInterface(x)
+			f.Decls = append(f.Decls, decls...)
+			fmt.Printf("decls: %v\n", f.Decls)
 		}
 		return true
 	})

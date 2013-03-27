@@ -43,8 +43,9 @@ func (m *FunctionCall) Return(values ...interface{}) {
 	m.values = values
 }
 
-// Returns the return values and true if the method/function is mocked
-// and the args match the expected values. Otherwise, it returns (nil, true)
+// Returns the (return values, true, nil) if the method/function is mocked
+// and the args match the expected values. Otherwise, it returns (nil, true, nil)
+// if there was an error this function returns (nil, false, error)
 func FunctionCalled(fun Function, args ...interface{}) ([]interface{}, bool, error) {
 	funType := reflect.ValueOf(fun)
 	calls := Map[funType]
