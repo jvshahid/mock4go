@@ -8,6 +8,9 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"io"
+	"os"
+	"path"
 	"strconv"
 )
 
@@ -271,4 +274,98 @@ func InstrumentFile(fileName string) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+func InstrumentPackage(packageName string, tmpDir string) *build.Package {
+	pkg, _ := GetPackage(packageName)
+
+	fmt.Printf("dir: %s, goroot: %v, root: %s\n", pkg.Dir, pkg.Goroot, pkg.SrcRoot)
+
+	if pkg.Goroot {
+		return pkg
+	}
+
+	for _, importPackageName := range pkg.Imports {
+		fmt.Printf("import: %s\n", importPackageName)
+		InstrumentPackage(importPackageName, tmpDir)
+	}
+	for _, importPackageName := range pkg.TestImports {
+		fmt.Printf("import: %s\n", importPackageName)
+		InstrumentPackage(importPackageName, tmpDir)
+	}
+	InstrumentPackageRecur(pkg, tmpDir, make(map[string]bool))
+
+	return pkg
+}
+
+func copyPackage(pkg *build.Package, tmpDir string) error {
+	// create a subdirectory
+
+	dst := path.Join(tmpDir, pkg.Dir)
+	err := os.MkdirAll(dst, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range pkg.GoFiles {
+		err := copyFile(path.Join(pkg.Dir, file), path.Join(dst, file))
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, file := range pkg.TestGoFiles {
+		err := copyFile(path.Join(pkg.Dir, file), path.Join(dst, file))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(dstFile, srcFile)
+	return err
+}
+
+func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[string]bool) {
+	if instrumented[pkg.Name] {
+		return
+	}
+
+	err := copyPackage(pkg, tmpDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s", err)
+		os.Exit(1)
+	}
+
+	// fmt.Printf("package %s contains: %s\n", pkg, strings.Join(files, ","))
+	for _, file := range pkg.GoFiles {
+		fileName := path.Join(tmpDir, pkg.Dir, file)
+		content, err := InstrumentFile(fileName)
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			os.Exit(1)
+		}
+		file, err := os.OpenFile(fileName, os.O_WRONLY, os.ModePerm)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			os.Exit(1)
+		}
+		_, err = fmt.Fprintf(file, content)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			os.Exit(1)
+		}
+		file.Close()
+	}
+
 }
