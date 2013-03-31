@@ -17,10 +17,8 @@ type Foo struct {
 func (f *Foo) Bar() {
 }
 
-func GetFiles(packageName string) (goFiles []string, err error) {
-	pkg, err := build.ImportDir(packageName, 0)
-	goFiles = pkg.GoFiles
-	return
+func GetPackage(packageName string) (*build.Package, error) {
+	return build.ImportDir(packageName, 0)
 }
 
 func makeIdent(name string) *ast.Ident {
