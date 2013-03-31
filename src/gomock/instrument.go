@@ -21,7 +21,7 @@ func (f *Foo) Bar() {
 }
 
 func GetPackage(packageName string) (*build.Package, error) {
-	return build.ImportDir(packageName, 0)
+	return build.Default.Import(packageName, ".", 0)
 }
 
 func makeIdent(name string) *ast.Ident {
@@ -170,7 +170,6 @@ func instrumentInterface(intrface *ast.InterfaceType) []ast.Decl {
 		},
 	)
 	for _, fun := range intrface.Methods.List {
-		fmt.Printf("I'm here")
 		funType := fun.Type.(*ast.FuncType)
 		// add a general declaration one per return value to guarantee
 		// they are assigned the zero value, then return those variables
@@ -250,16 +249,15 @@ func InstrumentFunctions(f *ast.File) {
 				// TODO: what should we do here
 				panic("incomplete interface type")
 			}
-			fmt.Printf("decls: %v\n", f.Decls)
 			decls := instrumentInterface(x)
 			f.Decls = append(f.Decls, decls...)
-			fmt.Printf("decls: %v\n", f.Decls)
 		}
 		return true
 	})
 }
 
 func InstrumentFile(fileName string) (string, error) {
+	fmt.Fprintf(os.Stderr, "instrumenting file %s\n", fileName)
 	// Create the AST by parsing src.
 	fset := token.NewFileSet() // positions are relative to fset
 	f, err := parser.ParseFile(fset, fileName, nil, 0)
@@ -277,20 +275,23 @@ func InstrumentFile(fileName string) (string, error) {
 }
 
 func InstrumentPackage(packageName string, tmpDir string) *build.Package {
-	pkg, _ := GetPackage(packageName)
+	pkg, err := GetPackage(packageName)
 
-	fmt.Printf("dir: %s, goroot: %v, root: %s\n", pkg.Dir, pkg.Goroot, pkg.SrcRoot)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		os.Exit(1)
+	}
 
 	if pkg.Goroot {
 		return pkg
 	}
 
+	fmt.Fprintf(os.Stderr, "instrumenting package %s\n", packageName)
+
 	for _, importPackageName := range pkg.Imports {
-		fmt.Printf("import: %s\n", importPackageName)
 		InstrumentPackage(importPackageName, tmpDir)
 	}
 	for _, importPackageName := range pkg.TestImports {
-		fmt.Printf("import: %s\n", importPackageName)
 		InstrumentPackage(importPackageName, tmpDir)
 	}
 	InstrumentPackageRecur(pkg, tmpDir, make(map[string]bool))
@@ -301,7 +302,7 @@ func InstrumentPackage(packageName string, tmpDir string) *build.Package {
 func copyPackage(pkg *build.Package, tmpDir string) error {
 	// create a subdirectory
 
-	dst := path.Join(tmpDir, pkg.Dir)
+	dst := path.Join(tmpDir, pkg.ImportPath)
 	err := os.MkdirAll(dst, os.ModePerm)
 	if err != nil {
 		return err
@@ -347,9 +348,14 @@ func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[
 		os.Exit(1)
 	}
 
+	// copy only, don't instrument gomock
+	if pkg.Name == "gomock" || pkg.Name == "gocheck" {
+		return
+	}
+
 	// fmt.Printf("package %s contains: %s\n", pkg, strings.Join(files, ","))
 	for _, file := range pkg.GoFiles {
-		fileName := path.Join(tmpDir, pkg.Dir, file)
+		fileName := path.Join(tmpDir, pkg.ImportPath, file)
 		content, err := InstrumentFile(fileName)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)

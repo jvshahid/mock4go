@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
-	"go/build"
 	"gomock"
 	"os"
 	"os/exec"
 	"path"
 	"runtime"
+	"strings"
 )
 
 func createTempDir() (string, error) {
 	tmp := os.TempDir()
-	name := path.Join(tmp, "gomock")
+	name := path.Join(tmp, "gomock", "src")
 	return name, os.MkdirAll(name, os.ModePerm)
 }
 
@@ -29,8 +29,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("goroot: %s\n", build.Default.GOROOT)
-
 	pkgs := make([]string, 0, len(os.Args[1:]))
 
 	for _, packageName := range os.Args[1:] {
@@ -43,7 +41,7 @@ func main() {
 	goBinPath, err := exec.LookPath("go")
 	proc, err := os.StartProcess(goBinPath, args, &os.ProcAttr{
 		Env: []string{
-			"GOPATH=" + tmpDir,
+			"GOPATH=" + strings.Replace(tmpDir, "/src", "", -1),
 			"GOROOT=" + runtime.GOROOT(),
 		},
 		Files: []*os.File{
