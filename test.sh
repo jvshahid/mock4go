@@ -4,4 +4,4 @@
 
 go get -v "launchpad.net/gocheck"
 
-go test test "$@"
+./run.sh test
