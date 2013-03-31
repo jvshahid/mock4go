@@ -4,6 +4,10 @@ import (
 	"fmt"
 )
 
+type TestInterface interface {
+	Value() string
+}
+
 type Foo struct {
 	Field string
 }
@@ -35,10 +39,10 @@ func OneReturnValueNoReceiver() string {
 	return "foo"
 }
 
-func MultipleReturnValuesNoReceiver(value string) (string, error) {
-	return "foo", nil
+func OneReturnValueNoReceiver2() string {
+	return "foo2"
 }
 
-type Bar interface {
-	NoReturnValues()
+func MultipleReturnValuesNoReceiver(value string) (string, error) {
+	return "foo", nil
 }
