@@ -27,8 +27,10 @@ func (f *Foo) MultipleReturnValues() (string, error) {
 	return f.Field, nil
 }
 
+var noReturnValues string
+
 func NoReturnValuesNoReceiver(value string) {
-	return
+	noReturnValues = value
 }
 
 func NoReturnValuesNoReceiver2(value string) {

@@ -94,6 +94,15 @@ func instrumentFunction(f *ast.FuncDecl) {
 	if returnStmts != nil {
 		returnValues = "values"
 	}
+
+	functionCalledArgs := []ast.Expr{
+		functionName(f),
+	}
+
+	for _, arg := range f.Type.Params.List {
+		functionCalledArgs = append(functionCalledArgs, arg.Names[0])
+	}
+
 	initStmt := &ast.AssignStmt{
 		Lhs: []ast.Expr{
 			&ast.Ident{
@@ -112,9 +121,7 @@ func instrumentFunction(f *ast.FuncDecl) {
 				Fun: &ast.Ident{
 					Name: "gomock.FunctionCalled",
 				},
-				Args: []ast.Expr{
-					functionName(f),
-				},
+				Args: functionCalledArgs,
 			},
 		},
 	}

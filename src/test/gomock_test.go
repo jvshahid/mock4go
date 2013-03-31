@@ -38,6 +38,14 @@ func (suite *GoMockSuite) TestBasicAssumptionsAboutFunctions(c *C) {
 	c.Assert(reflect.ValueOf(fun), Not(Equals), reflect.ValueOf(fun3))
 }
 
+func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValuesAndNoReceiver(c *C) {
+	NoReturnValuesNoReceiver("foo")
+	c.Assert(noReturnValues, Equals, "foo")
+	gomock.Mock(NoReturnValuesNoReceiver, "bar")
+	NoReturnValuesNoReceiver("bar")
+	c.Assert(noReturnValues, Equals, "foo")
+}
+
 func (suite *GoMockSuite) TestBasicMocking(c *C) {
 	gomock.Mock(OneReturnValueNoReceiver).Return("bar")
 	c.Assert(OneReturnValueNoReceiver(), Equals, "bar")
