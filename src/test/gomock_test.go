@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"gomock"
 	. "launchpad.net/gocheck"
 	"reflect"
@@ -21,14 +22,22 @@ func (suite *GoMockSuite) SetUpSuite(c *C) {
 }
 
 func (suite *GoMockSuite) SetUpTest(c *C) {
-	// setup the suite
+	// setup the test
 }
 
 func (suite *GoMockSuite) TearDownTest(c *C) {
 	gomock.ResetMocks()
 }
 
+func (suite *GoMockSuite) TearDownSuite(c *C) {
+	// tear down the suite
+}
+
 type Function interface{}
+
+func (suite *GoMockSuite) TestNoMocking(c *C) {
+	c.Assert(OneReturnValueNoReceiver(), Equals, "foo")
+}
 
 func (suite *GoMockSuite) TestBasicAssumptionsAboutFunctions(c *C) {
 	var fun Function = NoReturnValuesNoReceiver
@@ -46,12 +55,29 @@ func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValuesAndNoReceiver(c *
 	c.Assert(noReturnValues, Equals, "foo")
 }
 
-func (suite *GoMockSuite) TestBasicMocking(c *C) {
+func (suite *GoMockSuite) TestMockingFunctionsWithOneReturnValueAndNoReceiver(c *C) {
 	gomock.Mock(OneReturnValueNoReceiver).Return("bar")
 	c.Assert(OneReturnValueNoReceiver(), Equals, "bar")
 	c.Assert(OneReturnValueNoReceiver2(), Equals, "foo2")
 }
 
-func (suite *GoMockSuite) TestNoMocking(c *C) {
-	c.Assert(OneReturnValueNoReceiver(), Equals, "foo")
+func (suite *GoMockSuite) TestMockingFunctionsWithMultipleReturnValuesAndNoReceiver(c *C) {
+	expectedErr := errors.New("foobar")
+	gomock.Mock(MultipleReturnValuesNoReceiver, "bar").Return("foobar", expectedErr)
+	val, err := MultipleReturnValuesNoReceiver("foo")
+	c.Assert(err, IsNil)
+	c.Assert(val, Equals, "foo")
+	val, err = MultipleReturnValuesNoReceiver("bar")
+	c.Assert(err, Equals, expectedErr)
+	c.Assert(val, Equals, "foobar")
+}
+
+func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
+	foo := &Foo{Field: ""}
+	bar := &Foo{Field: ""}
+	gomock.Mock((*Foo).NoReturnValues, bar)
+	foo.NoReturnValues("foo")
+	bar.NoReturnValues("bar")
+	c.Assert(foo.Field, Equals, "foo")
+	c.Assert(bar.Field, Equals, "")
 }

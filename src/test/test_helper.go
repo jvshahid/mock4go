@@ -46,5 +46,5 @@ func OneReturnValueNoReceiver2() string {
 }
 
 func MultipleReturnValuesNoReceiver(value string) (string, error) {
-	return "foo", nil
+	return value, nil
 }

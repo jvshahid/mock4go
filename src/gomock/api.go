@@ -1,6 +1,7 @@
 package gomock
 
 import (
+	// "fmt"
 	"reflect"
 )
 
@@ -49,13 +50,20 @@ func (m *FunctionCall) Return(values ...interface{}) {
 func FunctionCalled(fun Function, args ...interface{}) ([]interface{}, bool, error) {
 	funType := reflect.ValueOf(fun)
 	calls := Map[funType]
+outer:
 	for _, call := range calls {
 		if len(call.args) > len(args) {
 			continue
 		}
 		for idx, arg := range call.args {
+			argType := reflect.TypeOf(args[idx])
+			if argType.Kind() == reflect.Ptr {
+				if arg != args[idx] {
+					continue outer
+				}
+			}
 			if !reflect.DeepEqual(arg, args[idx]) {
-				continue
+				continue outer
 			}
 		}
 		return call.values, true, nil

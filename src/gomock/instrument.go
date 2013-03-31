@@ -99,6 +99,10 @@ func instrumentFunction(f *ast.FuncDecl) {
 		functionName(f),
 	}
 
+	if f.Recv != nil && len(f.Recv.List) > 0 {
+		functionCalledArgs = append(functionCalledArgs, f.Recv.List[0].Names[0])
+	}
+
 	for _, arg := range f.Type.Params.List {
 		functionCalledArgs = append(functionCalledArgs, arg.Names[0])
 	}
