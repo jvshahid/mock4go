@@ -7,6 +7,7 @@ The approach is to generate source code for interfaces using a provided
 tool and use their api to specify expectations.
 
 I didn't like this approach for the following reasons:
+
 1. It requires a manual step of generating source code for each
 interfaces that will be used in testing.
 2. It only mock interfaces.
