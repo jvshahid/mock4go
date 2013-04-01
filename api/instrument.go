@@ -14,12 +14,6 @@ import (
 	"strconv"
 )
 
-type Foo struct {
-}
-
-func (f *Foo) Bar() {
-}
-
 func GetPackage(packageName string) (*build.Package, error) {
 	return build.Default.Import(packageName, ".", 0)
 }
