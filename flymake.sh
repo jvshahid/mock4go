@@ -12,7 +12,7 @@ fi
 . exports.sh
 
 project=gomock
-orig=${orig/*$project\/src/src}
+orig=${orig/*$project\//}
 dirname=`dirname $orig`
 filename=`basename $orig`
 package=${dirname/*src\//}
@@ -27,8 +27,8 @@ function is_test {
 }
 
 function flymake_regular {
-    go build $package
-    go build $package 2>&1 | grep $orig | sed "s/.*$filename/$filename/g"
+    # go build $orig
+    go build $orig 2>&1 | grep $orig | sed "s/.*$filename/$filename/g"
 }
 
 function flymake_test {
