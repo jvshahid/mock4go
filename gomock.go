@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gomock"
+	"github.com/jvshahid/gomock/api"
 	"os"
 	"os/exec"
 	"path"
@@ -32,7 +32,7 @@ func main() {
 	pkgs := make([]string, 0, len(os.Args[1:]))
 
 	for _, packageName := range os.Args[1:] {
-		pkg := gomock.InstrumentPackage(packageName, tmpDir)
+		pkg := api.InstrumentPackage(packageName, tmpDir)
 		pkgs = append(pkgs, pkg.Name)
 	}
 

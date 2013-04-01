@@ -1,4 +1,4 @@
-package gomock
+package api
 
 import (
 	"bytes"
@@ -28,11 +28,16 @@ func makeIdent(name string) *ast.Ident {
 	return &ast.Ident{Name: name}
 }
 
+const GoMockImport = "github.com/jvshahid/gomock/api"
+
 func AddGoMockImport(f *ast.File) {
 	importSpec := &ast.ImportSpec{
+		Name: &ast.Ident{
+			Name: "gomock",
+		},
 		Path: &ast.BasicLit{
 			Kind:  token.STRING,
-			Value: fmt.Sprintf("%#v", "gomock"),
+			Value: fmt.Sprintf("%#v", GoMockImport),
 		},
 	}
 
@@ -360,7 +365,7 @@ func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[
 	}
 
 	// copy only, don't instrument gomock
-	if pkg.Name == "gomock" || pkg.Name == "gocheck" {
+	if pkg.ImportPath == GoMockImport || pkg.ImportPath == "launchpad.net/gocheck" {
 		return
 	}
 

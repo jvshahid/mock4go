@@ -2,7 +2,7 @@ package test
 
 import (
 	"errors"
-	"gomock"
+	gomock "github.com/jvshahid/gomock/api"
 	. "launchpad.net/gocheck"
 	"reflect"
 	"testing"
