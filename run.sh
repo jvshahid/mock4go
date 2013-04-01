@@ -2,4 +2,4 @@
 
 . ./exports.sh
 
-go run src/main/gomock.go "$@"
+go run gomock.go "$@"
