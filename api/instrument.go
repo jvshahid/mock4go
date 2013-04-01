@@ -162,15 +162,16 @@ func instrumentFunction(f *ast.FuncDecl) {
 	// return &ast.CallExpr{Fun: makeIdent("gomock.FunctionCalled"), Args: []ast.Expr{}}
 }
 
-func instrumentInterface(intrface *ast.InterfaceType) []ast.Decl {
+func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
 	declarations := make([]ast.Decl, 0)
+
 	declarations = append(declarations,
 		&ast.GenDecl{
 			Tok: token.TYPE,
 			Specs: []ast.Spec{
 				&ast.TypeSpec{
 					Name: &ast.Ident{
-						Name: "MockInterface",
+						Name: "Mock" + name,
 					},
 					Type: &ast.StructType{
 						Fields: &ast.FieldList{},
@@ -225,7 +226,7 @@ func instrumentInterface(intrface *ast.InterfaceType) []ast.Decl {
 						},
 						Type: &ast.StarExpr{
 							X: &ast.Ident{
-								Name: "MockInterface",
+								Name: "Mock" + name,
 							},
 						},
 					},
@@ -242,7 +243,7 @@ func instrumentInterface(intrface *ast.InterfaceType) []ast.Decl {
 	return declarations
 }
 
-func InstrumentFunctions(f *ast.File) {
+func InstrumentFunctionsAndInterfaces(f *ast.File) {
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
@@ -254,13 +255,18 @@ func InstrumentFunctions(f *ast.File) {
 			} else {
 				// without receiver
 			}
-		case *ast.InterfaceType:
-			if x.Incomplete {
-				// TODO: what should we do here
-				panic("incomplete interface type")
+		case *ast.GenDecl:
+			if x.Tok == token.TYPE {
+				typeSpec := x.Specs[0].(*ast.TypeSpec)
+				if interfaceType, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+					if interfaceType.Incomplete {
+						// TODO: what should we do here
+						panic("incomplete interface type")
+					}
+					decls := instrumentInterface(typeSpec.Name.Name, interfaceType)
+					f.Decls = append(f.Decls, decls...)
+				}
 			}
-			decls := instrumentInterface(x)
-			f.Decls = append(f.Decls, decls...)
 		}
 		return true
 	})
@@ -275,7 +281,7 @@ func InstrumentFile(fileName string) (string, error) {
 		return "", err
 	}
 	AddGoMockImport(f)
-	InstrumentFunctions(f)
+	InstrumentFunctionsAndInterfaces(f)
 	buf := bytes.NewBufferString("")
 	err = printer.Fprint(buf, fset, f)
 	if err != nil {

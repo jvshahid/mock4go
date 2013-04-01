@@ -81,3 +81,9 @@ func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 	c.Assert(foo.Field, Equals, "foo")
 	c.Assert(bar.Field, Equals, "")
 }
+
+func (suite *GoMockSuite) TestMockingInterface(c *C) {
+	mock := &MockTestInterface{}
+	gomock.Mock((*MockTestInterface).Value).Return("foo")
+	c.Assert(mock.Value(), Equals, "foo")
+}
