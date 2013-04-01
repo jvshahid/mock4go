@@ -1,6 +1,5 @@
 *~
 src/launchpad.net/
-bin/
 *.a
 /gomock
 /test

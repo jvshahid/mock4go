@@ -4,8 +4,10 @@ dst=src/github.com/jvshahid
 mkdir -p $dst
 ln -f -s $PWD $dst/
 
-. ./exports.sh
+bindir=$(dirname $(readlink -f $0))
+
+. $bindir/exports.sh
 
 go get -v "launchpad.net/gocheck"
 
-./run.sh test
+$bindir/run.sh test
