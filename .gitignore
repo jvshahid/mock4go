@@ -8,3 +8,4 @@ bin/
 test.test
 gomock.test
 TAGS
+src/github.com/jvshahid/gomock
