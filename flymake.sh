@@ -9,14 +9,14 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-. exports.sh
+. bin/exports.sh
 
-project=gomock
-orig=${orig/*$project\//}
+git_root_dir=$(git rev-parse --show-toplevel)
+orig=${orig/$git_root_dir\//}
 dirname=`dirname $orig`
 filename=`basename $orig`
 package=${dirname/*src\//}
-echo $package
+echo $orig
 
 function is_test {
     if [[ "$orig" == *_test.go ]]; then
