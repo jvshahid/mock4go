@@ -16,7 +16,6 @@ orig=${orig/$git_root_dir\//}
 dirname=`dirname $orig`
 filename=`basename $orig`
 package=${dirname/*src\//}
-echo $orig
 
 function is_test {
     if [[ "$orig" == *_test.go ]]; then
