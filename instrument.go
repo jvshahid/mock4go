@@ -187,27 +187,40 @@ func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
 		stmts := make([]ast.Stmt, 0)
 		returnVariables := make([]ast.Expr, 0)
 
-		for idx, returnValue := range funType.Results.List {
-			// add a declaration
-			name := fmt.Sprintf("_temp%d", idx)
-			returnVariables = append(returnVariables, &ast.Ident{
-				Name: name,
-			})
-			stmts = append(stmts, &ast.DeclStmt{
-				Decl: &ast.GenDecl{
-					Tok: token.VAR,
-					Specs: []ast.Spec{
-						&ast.ValueSpec{
-							Type: returnValue.Type,
-							Names: []*ast.Ident{
-								&ast.Ident{
-									Name: name,
+		if funType.Results != nil {
+			for idx, returnValue := range funType.Results.List {
+				// add a declaration
+				name := fmt.Sprintf("_temp%d", idx)
+				returnVariables = append(returnVariables, &ast.Ident{
+					Name: name,
+				})
+				stmts = append(stmts, &ast.DeclStmt{
+					Decl: &ast.GenDecl{
+						Tok: token.VAR,
+						Specs: []ast.Spec{
+							&ast.ValueSpec{
+								Type: returnValue.Type,
+								Names: []*ast.Ident{
+									&ast.Ident{
+										Name: name,
+									},
 								},
 							},
 						},
 					},
-				},
-			})
+				})
+			}
+		}
+
+		// set a name to each function argument
+		if funType.Params != nil {
+			for idx, arg := range funType.Params.List {
+				arg.Names = []*ast.Ident{
+					&ast.Ident{
+						Name: fmt.Sprintf("arg%d", idx),
+					},
+				}
+			}
 		}
 
 		stmts = append(stmts, &ast.ReturnStmt{

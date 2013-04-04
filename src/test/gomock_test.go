@@ -2,7 +2,7 @@ package test
 
 import (
 	"errors"
-	gomock "github.com/jvshahid/gomock/api"
+	gomock "github.com/jvshahid/gomock"
 	. "launchpad.net/gocheck"
 	"reflect"
 	"testing"
@@ -86,4 +86,16 @@ func (suite *GoMockSuite) TestMockingInterface(c *C) {
 	mock := &MockTestInterface{}
 	gomock.Mock((*MockTestInterface).Value).Return("foo")
 	c.Assert(mock.Value(), Equals, "foo")
+}
+
+func (suite *GoMockSuite) TestMockingNoResultInterface(c *C) {
+	mock := &MockTestNoResultInterface{}
+	gomock.Mock((*MockTestNoResultInterface).Value)
+	mock.Value("foo")
+}
+
+func (suite *GoMockSuite) TestMockingNoArgNameInterface(c *C) {
+	mock := &MockTestNoArgNameInterface{}
+	gomock.Mock((*MockTestNoArgNameInterface).Value, mock, "foo").Return("bar")
+	c.Assert(mock.Value("foo"), Equals, "bar")
 }

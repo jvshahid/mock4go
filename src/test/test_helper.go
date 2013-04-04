@@ -8,6 +8,14 @@ type TestInterface interface {
 	Value() string
 }
 
+type TestNoResultInterface interface {
+	Value(s string)
+}
+
+type TestNoArgNameInterface interface {
+	Value(string) string
+}
+
 type Foo struct {
 	Field string
 }
