@@ -22,7 +22,7 @@ func makeIdent(name string) *ast.Ident {
 	return &ast.Ident{Name: name}
 }
 
-const GoMockImport = "github.com/jvshahid/gomock/api"
+const GoMockImport = "github.com/jvshahid/gomock"
 
 func AddGoMockImport(f *ast.File) {
 	importSpec := &ast.ImportSpec{

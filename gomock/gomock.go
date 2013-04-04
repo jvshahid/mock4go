@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/jvshahid/gomock/api"
+	"github.com/jvshahid/gomock"
 	"os"
 	"os/exec"
 	"path"

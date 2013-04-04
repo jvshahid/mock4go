@@ -2,6 +2,7 @@
 src/launchpad.net/
 *.a
 /gomock
+!gomock/
 /test
 /main
 test.test
