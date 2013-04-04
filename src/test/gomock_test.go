@@ -79,6 +79,7 @@ func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 	foo.NoReturnValues("foo")
 	bar.NoReturnValues("bar")
 	c.Assert(foo.Field, Equals, "foo")
+	// bar.NoReturnValues was stubbed and shouldn't change the value of Field
 	c.Assert(bar.Field, Equals, "")
 }
 
