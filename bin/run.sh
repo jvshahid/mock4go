@@ -4,4 +4,4 @@ bindir=$(dirname $(readlink -f $0))
 
 . $bindir/exports.sh
 
-go run gomock.go "$@"
+go run gomock/gomock.go "$@"
