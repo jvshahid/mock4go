@@ -14,12 +14,139 @@ interfaces that will be used in testing.
 
 I decided to take a different approach after using
 [gocov](https://github.com/axw/gocov) and being inspired by their
-approach.
-
-## Theory
+approach. gomock will create an instrumented copy of the code and
+run go test using the new copy. This allows gomock to insert code
+to intercept function calls and do some interesting stuff.
 
 ## Usage Example
 
+The examples below use gocheck as the test framework. To stub a
+function you call `gomock.Mock(FunctionName[, matchers])[.Return(returnValues)]`
+where:
+
+1. `matchers` are the argument matchers, currently we only support
+   values matchers. A matcher equals the corresponding positional argument
+   iff the matcher value wasn't a pointer and the argument equals
+   the matcher value using reflect.DeepEquals, or the matcher value
+   was a pointer and it is equal to the argument using `==`
+2. `returnValues` can be any number of return values
+3. Currently gomock doesn't check whether the matchers, or returnValues
+   makes sense. That means that your test may compile but panics during
+   runtime.
+4. Make sure you run gomock.ResetMocks() after each test
+5. When stubbing functions with receivers, the first argument
+   in the matchers is the receiver.
+
+### Stubbing functions wo a receiver
+
+Given the very simple function below:
+
+```GO
+func OneReturnValueNoReceiver() string {
+	return "foo"
+}
+```
+
+We can stub in the test like this:
+
+```GO
+package apackage
+
+import (
+	gomock "github.com/jvshahid/gomock"
+	. "launchpad.net/gocheck"
+	"testing"
+)
+
+type GoMockSuite struct{}
+
+var _ = Suite(&GoMockSuite{})
+
+func (suite *GoMockSuite) TearDownTest(c *C) {
+	gomock.ResetMocks()
+}
+
+func (suite *GoMockSuite) TestMockingFunctionsWithOneReturnValueAndNoReceiver(c *C) {
+	gomock.Mock(OneReturnValueNoReceiver).Return("bar")
+	c.Assert(OneReturnValueNoReceiver(), Equals, "bar")
+}
+```
+
+### Stubbing functions with a receiver
+
+```GO
+type Foo struct {
+	Field string
+}
+
+func (f *Foo) NoReturnValues(value string) {
+	f.Field = value
+}
+
+```
+
+```GO
+func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
+	foo := &Foo{Field: ""}
+	bar := &Foo{Field: ""}
+	gomock.Mock((*Foo).NoReturnValues, bar)
+	foo.NoReturnValues("foo")
+	bar.NoReturnValues("bar")
+	c.Assert(foo.Field, Equals, "foo")
+	// bar.NoReturnValues was stubbed and shouldn't change the value of Field
+	c.Assert(bar.Field, Equals, "")
+}
+```
+
+### Stubbing interfaces
+
+gomock will create a mock implementation for every interface it parses.
+If the interface is called `FooInterface` the generated type will be called
+`MockFooInterface`, and all the interface's functions will be defined for
+that type.
+
 ## TODO
 
+* Add more matchers, so we can do interesting things like match on a prefix, etc.
+* Add a way to pass a new function that decides what to return to the caller
+* Ability to exclude certain packages from being instrumented
+
 ## Contributing
+
+If you found a bug, want to add a feature:
+
+1. make sure you can run `./bin/test.sh` and it passes on your local machine
+2. write a test in `src/test` and make sure it fails
+3. make the test pass
+4. send me a pr
+
+If you're feeling lazy or don't know how to fix a bug or implement a feature
+feel free to open a new issue and I'll make it happen.
+
+## License:
+
+    (The MIT License)
+
+    Copyright (c) 2013 :
+
+    * {John Shahid}[http://github.com/jvshahid]
+
+
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    'Software'), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
