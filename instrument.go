@@ -402,7 +402,7 @@ func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			os.Exit(1)
 		}
-		_, err = fmt.Fprintf(file, content)
+		_, err = file.Write([]byte(content))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			os.Exit(1)
