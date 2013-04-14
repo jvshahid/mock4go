@@ -4,6 +4,7 @@ import (
 	"errors"
 	. "github.com/jvshahid/gomock"
 	. "launchpad.net/gocheck"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -33,6 +34,10 @@ func (suite *GoMockSuite) TearDownTest(c *C) {
 
 func (suite *GoMockSuite) TearDownSuite(c *C) {
 	// tear down the suite
+}
+
+func (suite *GoMockSuite) TestEnvironment(c *C) {
+	c.Assert(os.Getenv("GOMOCK_TEST_ENV"), Equals, "gomock")
 }
 
 func (suite *GoMockSuite) TestNoMocking(c *C) {

@@ -10,4 +10,5 @@ bindir=$(dirname $(readlink -f $0))
 
 go get -v "launchpad.net/gocheck"
 
-$bindir/run.sh test
+export GOMOCK_TEST_ENV=gomock   # make sure we pass the environment properly
+$bindir/run.sh test && $bindir/run.sh testc
