@@ -89,6 +89,9 @@ func functionReturnExprs(f *ast.FuncDecl) []ast.Expr {
 // at the beginning of the given function declaration.
 func instrumentFunction(f *ast.FuncDecl) {
 	returnStmts := functionReturnExprs(f)
+	if f.Name.Name == "init" {
+		return false
+	}
 	returnValues := "_"
 	if returnStmts != nil {
 		returnValues = "values"
