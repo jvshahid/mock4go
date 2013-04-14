@@ -6,6 +6,7 @@ src/launchpad.net/
 /test
 /main
 test.test
+testc.test
 gomock.test
 TAGS
 src/github.com/jvshahid/gomock
