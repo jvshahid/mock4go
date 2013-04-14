@@ -162,7 +162,8 @@ func instrumentFunction(f *ast.FuncDecl) {
 	stmts := body.List
 	stmts = append([]ast.Stmt{stmt}, stmts...)
 	body.List = stmts
-	// return &ast.CallExpr{Fun: makeIdent("gomock.FunctionCalled"), Args: []ast.Expr{}}
+	return true
+}
 }
 
 func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
@@ -259,11 +260,15 @@ func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
 	return declarations
 }
 
-func InstrumentFunctionsAndInterfaces(f *ast.File) {
+func InstrumentFunctionsAndInterfaces(f *ast.File) bool {
+	addGoMockImport := false
+
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
-			instrumentFunction(x)
+			if instrumentFunction(x) {
+				addGoMockImport = true
+			}
 			if x.Recv != nil {
 				// fieldList := x.Recv.List[0]
 				// name := fieldList.Names[0]
@@ -280,12 +285,15 @@ func InstrumentFunctionsAndInterfaces(f *ast.File) {
 						panic("incomplete interface type")
 					}
 					decls := instrumentInterface(typeSpec.Name.Name, interfaceType)
+					addGoMockImport = true
 					f.Decls = append(f.Decls, decls...)
 				}
 			}
 		}
 		return true
 	})
+
+	return addGoMockImport
 }
 
 func InstrumentFile(fileName string) (string, error) {
