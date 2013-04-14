@@ -34,6 +34,7 @@ func main() {
 		pkg := api.InstrumentPackage(packageName, tmpDir)
 		pkgs = append(pkgs, pkg.Name)
 	}
+	api.InstrumentPackage(api.GoMockImport, tmpDir)
 
 	// run the tests
 	args := append([]string{"", "test", "-v"}, pkgs...)
