@@ -478,5 +478,4 @@ func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[
 		}
 		file.Close()
 	}
-
 }
