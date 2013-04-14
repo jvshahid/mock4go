@@ -331,7 +331,13 @@ func InstrumentFile(fileName string) (string, error) {
 	return buf.String(), nil
 }
 
+var instrumented = make(map[string]*build.Package)
+
 func InstrumentPackage(packageName string, tmpDir string) *build.Package {
+	if pkg := instrumented[packageName]; pkg != nil {
+		return pkg
+	}
+
 	if packageName == "C" {
 		return nil
 	}
@@ -342,6 +348,8 @@ func InstrumentPackage(packageName string, tmpDir string) *build.Package {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(1)
 	}
+
+	instrumented[packageName] = pkg
 
 	if pkg.Goroot {
 		return pkg
