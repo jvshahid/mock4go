@@ -8,6 +8,11 @@ type TestInterface interface {
 	Value() string
 }
 
+type TestEmbeddedInterface interface {
+	TestInterface
+	AnotherValue() string
+}
+
 type TestNoResultInterface interface {
 	Value(s string)
 }

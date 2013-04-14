@@ -61,25 +61,39 @@ func functionName(f *ast.FuncDecl) ast.Expr {
 
 // construct the return statement that converts the interface{} type
 // returned from gomock.FunctionCalled to the expected returned type
-func functionReturnExprs(f *ast.FuncDecl) []ast.Expr {
+func functionReturnExprs(f *ast.FuncDecl, stmts []ast.Stmt) []ast.Stmt {
 	if f.Type.Results == nil {
 		return nil
 	}
-	exprs := make([]ast.Expr, 0)
-	for idx, param := range f.Type.Results.List {
-		exprs = append(exprs, &ast.TypeAssertExpr{
-			X: &ast.IndexExpr{
-				X: &ast.Ident{
-					Name: "values",
-				},
-				Index: &ast.Ident{
-					Name: strconv.Itoa(idx),
+
+	for idx, variable := range f.Type.Results.List {
+		value := &ast.IndexExpr{
+			X:     &ast.Ident{Name: "values"},
+			Index: &ast.Ident{Name: strconv.Itoa(idx)},
+		}
+		stmts = append(stmts, &ast.IfStmt{
+			Cond: &ast.BinaryExpr{
+				X:  value,
+				Op: token.NEQ,
+				Y:  &ast.Ident{Name: "nil"},
+			},
+			Body: &ast.BlockStmt{
+				List: []ast.Stmt{
+					&ast.AssignStmt{
+						Lhs: []ast.Expr{&ast.Ident{Name: fmt.Sprintf("_temp%d", idx)}},
+						Tok: token.ASSIGN,
+						Rhs: []ast.Expr{
+							&ast.TypeAssertExpr{
+								X:    value,
+								Type: variable.Type,
+							},
+						},
+					},
 				},
 			},
-			Type: param.Type,
 		})
 	}
-	return exprs
+	return stmts
 }
 
 // Programatically generate the following code:
@@ -87,13 +101,19 @@ func functionReturnExprs(f *ast.FuncDecl) []ast.Expr {
 //      return value[0].(Type1), value[1].(Type2)
 //    }
 // at the beginning of the given function declaration.
-func instrumentFunction(f *ast.FuncDecl) {
-	returnStmts := functionReturnExprs(f)
+func instrumentFunction(f *ast.FuncDecl) bool {
 	if f.Name.Name == "init" {
 		return false
 	}
+
+	variableDeclaration, returnVariables := declareReturnValuesVariables(f.Type)
+
+	returnStmts := functionReturnExprs(f, variableDeclaration)
+	returnStmts = append(returnStmts, &ast.ReturnStmt{
+		Results: returnVariables,
+	})
 	returnValues := "_"
-	if returnStmts != nil {
+	if len(returnStmts) > 1 {
 		returnValues = "values"
 	}
 
@@ -147,11 +167,7 @@ func instrumentFunction(f *ast.FuncDecl) {
 		},
 	}
 	bodyStmt := &ast.BlockStmt{
-		List: []ast.Stmt{
-			&ast.ReturnStmt{
-				Results: returnStmts,
-			},
-		},
+		List: returnStmts,
 	}
 	stmt := &ast.IfStmt{
 		Init: initStmt,
@@ -164,10 +180,114 @@ func instrumentFunction(f *ast.FuncDecl) {
 	body.List = stmts
 	return true
 }
+
+type Interface struct {
+	pkg           string
+	name          string
+	interfaceType *ast.InterfaceType
+	file          string
+}
+
+var interfaces = make(map[string]Interface) // map from pkg.InterfaceName to the Interface type
+
+func declareReturnValuesVariables(funType *ast.FuncType) ([]ast.Stmt, []ast.Expr) {
+	stmts := make([]ast.Stmt, 0)
+	returnVariables := make([]ast.Expr, 0)
+
+	if funType.Results != nil {
+		for idx, returnValue := range funType.Results.List {
+			// add a declaration
+			name := fmt.Sprintf("_temp%d", idx)
+			returnVariables = append(returnVariables, &ast.Ident{
+				Name: name,
+			})
+			stmts = append(stmts, &ast.DeclStmt{
+				Decl: &ast.GenDecl{
+					Tok: token.VAR,
+					Specs: []ast.Spec{
+						&ast.ValueSpec{
+							Type: returnValue.Type,
+							Names: []*ast.Ident{
+								&ast.Ident{
+									Name: name,
+								},
+							},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	return stmts, returnVariables
+}
+
+func instrumentInterfaceFunction(interfaceName string,
+	intrface *ast.InterfaceType, funName *ast.Ident, funType *ast.FuncType) ast.Decl {
+	// add a general declaration one per return value to guarantee
+	// they are assigned the zero value, then return those variables
+	stmts, returnVariables := declareReturnValuesVariables(funType)
+
+	// set a name to each function argument
+	if funType.Params != nil {
+		for idx, arg := range funType.Params.List {
+			arg.Names = []*ast.Ident{
+				&ast.Ident{
+					Name: fmt.Sprintf("arg%d", idx),
+				},
+			}
+		}
+	}
+
+	stmts = append(stmts, &ast.ReturnStmt{
+		Results: returnVariables,
+	})
+
+	newDecl := &ast.FuncDecl{
+		Name: funName,
+		Recv: &ast.FieldList{
+			List: []*ast.Field{
+				&ast.Field{
+					Names: []*ast.Ident{
+						&ast.Ident{
+							Name: "recv",
+						},
+					},
+					Type: &ast.StarExpr{
+						X: &ast.Ident{
+							Name: "Mock" + interfaceName,
+						},
+					},
+				},
+			},
+		},
+		Type: funType,
+		Body: &ast.BlockStmt{
+			List: stmts,
+		},
+	}
+	instrumentFunction(newDecl)
+	return newDecl
 }
 
 func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
 	declarations := make([]ast.Decl, 0)
+
+	structFunctions := make([]*ast.Field, 0)
+	structEmbedded := make([]*ast.Field, 0)
+
+	for _, fun := range intrface.Methods.List {
+		switch x := fun.Type.(type) {
+		case *ast.FuncType:
+			structFunctions = append(structFunctions, fun)
+		case *ast.Ident:
+			fmt.Printf("x = %s, type = %v\n", x.Name, fun.Type)
+			ident := &ast.Ident{Name: "Mock" + x.Name}
+			structEmbedded = append(structEmbedded, &ast.Field{
+				Type: ident,
+			})
+		}
+	}
 
 	declarations = append(declarations,
 		&ast.GenDecl{
@@ -178,84 +298,18 @@ func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
 						Name: "Mock" + name,
 					},
 					Type: &ast.StructType{
-						Fields: &ast.FieldList{},
+						Fields: &ast.FieldList{
+							List: structEmbedded,
+						},
 					},
 				},
 			},
 		},
 	)
-	for _, fun := range intrface.Methods.List {
-		funType := fun.Type.(*ast.FuncType)
-		// add a general declaration one per return value to guarantee
-		// they are assigned the zero value, then return those variables
-		stmts := make([]ast.Stmt, 0)
-		returnVariables := make([]ast.Expr, 0)
 
-		if funType.Results != nil {
-			for idx, returnValue := range funType.Results.List {
-				// add a declaration
-				name := fmt.Sprintf("_temp%d", idx)
-				returnVariables = append(returnVariables, &ast.Ident{
-					Name: name,
-				})
-				stmts = append(stmts, &ast.DeclStmt{
-					Decl: &ast.GenDecl{
-						Tok: token.VAR,
-						Specs: []ast.Spec{
-							&ast.ValueSpec{
-								Type: returnValue.Type,
-								Names: []*ast.Ident{
-									&ast.Ident{
-										Name: name,
-									},
-								},
-							},
-						},
-					},
-				})
-			}
-		}
-
-		// set a name to each function argument
-		if funType.Params != nil {
-			for idx, arg := range funType.Params.List {
-				arg.Names = []*ast.Ident{
-					&ast.Ident{
-						Name: fmt.Sprintf("arg%d", idx),
-					},
-				}
-			}
-		}
-
-		stmts = append(stmts, &ast.ReturnStmt{
-			Results: returnVariables,
-		})
-
-		newDecl := &ast.FuncDecl{
-			Name: fun.Names[0],
-			Recv: &ast.FieldList{
-				List: []*ast.Field{
-					&ast.Field{
-						Names: []*ast.Ident{
-							&ast.Ident{
-								Name: "recv",
-							},
-						},
-						Type: &ast.StarExpr{
-							X: &ast.Ident{
-								Name: "Mock" + name,
-							},
-						},
-					},
-				},
-			},
-			Type: funType,
-			Body: &ast.BlockStmt{
-				List: stmts,
-			},
-		}
-		instrumentFunction(newDecl)
-		declarations = append(declarations, newDecl)
+	for _, fun := range structFunctions {
+		decl := instrumentInterfaceFunction(name, intrface, fun.Names[0], fun.Type.(*ast.FuncType))
+		declarations = append(declarations, decl)
 	}
 	return declarations
 }
@@ -304,8 +358,10 @@ func InstrumentFile(fileName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	AddGoMockImport(f)
-	InstrumentFunctionsAndInterfaces(f)
+	if InstrumentFunctionsAndInterfaces(f) {
+		AddGoMockImport(f)
+	}
+	f.Comments = nil
 	buf := bytes.NewBufferString("")
 	err = printer.Fprint(buf, fset, f)
 	if err != nil {
@@ -352,19 +408,24 @@ func copyPackage(pkg *build.Package, tmpDir string) error {
 		return err
 	}
 
-	for _, file := range pkg.GoFiles {
-		err := copyFile(path.Join(pkg.Dir, file), path.Join(dst, file))
-		if err != nil {
-			return err
+	filesLists := [][]string{
+		pkg.GoFiles,
+		pkg.TestGoFiles,
+		pkg.CgoFiles,
+		pkg.CFiles,
+		pkg.HFiles,
+		pkg.SFiles,
+	}
+
+	for _, list := range filesLists {
+		for _, file := range list {
+			err := copyFile(path.Join(pkg.Dir, file), path.Join(dst, file))
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	for _, file := range pkg.TestGoFiles {
-		err := copyFile(path.Join(pkg.Dir, file), path.Join(dst, file))
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

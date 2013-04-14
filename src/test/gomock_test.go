@@ -2,11 +2,13 @@ package test
 
 import (
 	"errors"
-	gomock "github.com/jvshahid/gomock"
+	. "github.com/jvshahid/gomock"
 	. "launchpad.net/gocheck"
 	"reflect"
 	"testing"
 )
+
+type Function interface{}
 
 // Hook up gocheck into the gotest runner.
 func Test(t *testing.T) {
@@ -26,14 +28,12 @@ func (suite *GoMockSuite) SetUpTest(c *C) {
 }
 
 func (suite *GoMockSuite) TearDownTest(c *C) {
-	gomock.ResetMocks()
+	ResetMocks()
 }
 
 func (suite *GoMockSuite) TearDownSuite(c *C) {
 	// tear down the suite
 }
-
-type Function interface{}
 
 func (suite *GoMockSuite) TestNoMocking(c *C) {
 	c.Assert(OneReturnValueNoReceiver(), Equals, "foo")
@@ -50,20 +50,26 @@ func (suite *GoMockSuite) TestBasicAssumptionsAboutFunctions(c *C) {
 func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValuesAndNoReceiver(c *C) {
 	NoReturnValuesNoReceiver("foo")
 	c.Assert(noReturnValues, Equals, "foo")
-	gomock.Mock(NoReturnValuesNoReceiver, "bar")
+	Mock(func() {
+		NoReturnValuesNoReceiver("bar")
+	})
 	NoReturnValuesNoReceiver("bar")
 	c.Assert(noReturnValues, Equals, "foo")
 }
 
 func (suite *GoMockSuite) TestMockingFunctionsWithOneReturnValueAndNoReceiver(c *C) {
-	gomock.Mock(OneReturnValueNoReceiver).Return("bar")
+	Mock(func() {
+		When(OneReturnValueNoReceiver()).Return("bar")
+	})
 	c.Assert(OneReturnValueNoReceiver(), Equals, "bar")
 	c.Assert(OneReturnValueNoReceiver2(), Equals, "foo2")
 }
 
 func (suite *GoMockSuite) TestMockingFunctionsWithMultipleReturnValuesAndNoReceiver(c *C) {
 	expectedErr := errors.New("foobar")
-	gomock.Mock(MultipleReturnValuesNoReceiver, "bar").Return("foobar", expectedErr)
+	Mock(func() {
+		When(MultipleReturnValuesNoReceiver("bar")).Return("foobar", expectedErr)
+	})
 	val, err := MultipleReturnValuesNoReceiver("foo")
 	c.Assert(err, IsNil)
 	c.Assert(val, Equals, "foo")
@@ -75,7 +81,9 @@ func (suite *GoMockSuite) TestMockingFunctionsWithMultipleReturnValuesAndNoRecei
 func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 	foo := &Foo{Field: ""}
 	bar := &Foo{Field: ""}
-	gomock.Mock((*Foo).NoReturnValues, bar)
+	Mock(func() {
+		bar.NoReturnValues("bar")
+	})
 	foo.NoReturnValues("foo")
 	bar.NoReturnValues("bar")
 	c.Assert(foo.Field, Equals, "foo")
@@ -85,18 +93,34 @@ func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 
 func (suite *GoMockSuite) TestMockingInterface(c *C) {
 	mock := &MockTestInterface{}
-	gomock.Mock((*MockTestInterface).Value).Return("foo")
+	Mock(func() {
+		When(mock.Value()).Return("foo")
+	})
 	c.Assert(mock.Value(), Equals, "foo")
 }
 
 func (suite *GoMockSuite) TestMockingNoResultInterface(c *C) {
 	mock := &MockTestNoResultInterface{}
-	gomock.Mock((*MockTestNoResultInterface).Value)
+	Mock(func() {
+		mock.Value("foo")
+	})
 	mock.Value("foo")
 }
 
 func (suite *GoMockSuite) TestMockingNoArgNameInterface(c *C) {
 	mock := &MockTestNoArgNameInterface{}
-	gomock.Mock((*MockTestNoArgNameInterface).Value, mock, "foo").Return("bar")
+	Mock(func() {
+		When(mock.Value("foo")).Return("bar")
+	})
 	c.Assert(mock.Value("foo"), Equals, "bar")
+}
+
+func (suite *GoMockSuite) TestMockingEmbeddedInterface(c *C) {
+	mock := &MockTestEmbeddedInterface{}
+	Mock(func() {
+		When(mock.Value()).Return("foo")
+		When(mock.AnotherValue()).Return("bar")
+	})
+	c.Assert(mock.Value(), Equals, "foo")
+	c.Assert(mock.AnotherValue(), Equals, "bar")
 }

@@ -1,54 +1,65 @@
 package api
 
 import (
-	// "fmt"
 	"reflect"
 )
 
-type Function interface{}
+type function interface{}
 
-var Map = make(map[Function][]*FunctionCall)
+var Map = make(map[function][]*functionCall)
 
-type FunctionCall struct {
+type functionCall struct {
 	args   []interface{}
 	values []interface{}
 }
 
-func Mock(fun Function, args ...interface{}) *FunctionCall {
-	call := &FunctionCall{
-		args: args,
-	}
-	funType := reflect.ValueOf(fun)
-	calls := Map[funType]
-	calls = append(calls, call)
-	Map[funType] = calls
-	return call
+func getFunType(fun function) interface{} {
+	return reflect.ValueOf(fun)
 }
 
-type MethodCall struct {
-	FunctionCall
-	receiver interface{}
+var mocking = false
+var lastFunctionCall *functionCall
+
+func Mock(fun func()) {
+	mocking = true
+	fun()
+	mocking = false
 }
 
-func MockWithReceiver(fun Function, receiver interface{}, args ...interface{}) *MethodCall {
-	call := &MethodCall{
-		FunctionCall: FunctionCall{
-			args: args,
-		},
-		receiver: receiver,
-	}
-	return call
+func When(args ...interface{}) *functionCall {
+	return lastFunctionCall
 }
 
-func (m *FunctionCall) Return(values ...interface{}) {
+func (m *functionCall) Return(values ...interface{}) *functionCall {
 	m.values = values
+	return m
+}
+
+func addFunctionCall(funType interface{}, call *functionCall) {
+	Map[funType] = append(Map[funType], call)
+}
+
+func ZeroValues(fun function) []interface{} {
+	funType := reflect.TypeOf(fun)
+	values := make([]interface{}, 0)
+	for i := 0; i < funType.NumOut(); i++ {
+		values = append(values, reflect.Zero(funType.Out(i)).Interface())
+	}
+	return values
 }
 
 // Returns the (return values, true, nil) if the method/function is mocked
 // and the args match the expected values. Otherwise, it returns (nil, true, nil)
 // if there was an error this function returns (nil, false, error)
-func FunctionCalled(fun Function, args ...interface{}) ([]interface{}, bool, error) {
-	funType := reflect.ValueOf(fun)
+func FunctionCalled(fun function, args ...interface{}) ([]interface{}, bool, error) {
+	funType := getFunType(fun)
+	if mocking {
+		lastFunctionCall = &functionCall{
+			args: args,
+		}
+		addFunctionCall(funType, lastFunctionCall)
+		return ZeroValues(fun), true, nil
+	}
 	calls := Map[funType]
 outer:
 	for _, call := range calls {
@@ -73,5 +84,5 @@ outer:
 }
 
 func ResetMocks() {
-	Map = make(map[Function][]*FunctionCall)
+	Map = make(map[function][]*functionCall)
 }
