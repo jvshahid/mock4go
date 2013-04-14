@@ -397,7 +397,7 @@ func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[
 			fmt.Printf("Error: %s\n", err)
 			os.Exit(1)
 		}
-		file, err := os.OpenFile(fileName, os.O_WRONLY, os.ModePerm)
+		file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			os.Exit(1)
