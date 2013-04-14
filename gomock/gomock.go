@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"runtime"
 	"strings"
 )
 
@@ -39,11 +38,10 @@ func main() {
 	// run the tests
 	args := append([]string{"", "test", "-v"}, pkgs...)
 	goBinPath, err := exec.LookPath("go")
+	os.Setenv("GOPATH", strings.Replace(tmpDir, "/src", "", -1))
+
 	proc, err := os.StartProcess(goBinPath, args, &os.ProcAttr{
-		Env: []string{
-			"GOPATH=" + strings.Replace(tmpDir, "/src", "", -1),
-			"GOROOT=" + runtime.GOROOT(),
-		},
+		Env: os.Environ(),
 		Files: []*os.File{
 			os.Stdin,
 			os.Stdout,
