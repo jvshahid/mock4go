@@ -53,7 +53,7 @@ We can stub in the test like this:
 package apackage
 
 import (
-	gomock "github.com/jvshahid/gomock"
+	. "github.com/jvshahid/gomock"
 	. "launchpad.net/gocheck"
 	"testing"
 )
@@ -63,12 +63,15 @@ type GoMockSuite struct{}
 var _ = Suite(&GoMockSuite{})
 
 func (suite *GoMockSuite) TearDownTest(c *C) {
-	gomock.ResetMocks()
+	ResetMocks()
 }
 
 func (suite *GoMockSuite) TestMockingFunctionsWithOneReturnValueAndNoReceiver(c *C) {
-	gomock.Mock(OneReturnValueNoReceiver).Return("bar")
+	Mock(func() {
+		When(OneReturnValueNoReceiver()).Return("bar")
+	})
 	c.Assert(OneReturnValueNoReceiver(), Equals, "bar")
+	c.Assert(OneReturnValueNoReceiver2(), Equals, "foo2")
 }
 ```
 
@@ -89,7 +92,9 @@ func (f *Foo) NoReturnValues(value string) {
 func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 	foo := &Foo{Field: ""}
 	bar := &Foo{Field: ""}
-	gomock.Mock((*Foo).NoReturnValues, bar)
+	Mock(func() {
+		bar.NoReturnValues("bar")
+	})
 	foo.NoReturnValues("foo")
 	bar.NoReturnValues("bar")
 	c.Assert(foo.Field, Equals, "foo")
