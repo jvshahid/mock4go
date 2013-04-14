@@ -307,6 +307,10 @@ func InstrumentFile(fileName string) (string, error) {
 }
 
 func InstrumentPackage(packageName string, tmpDir string) *build.Package {
+	if packageName == "C" {
+		return nil
+	}
+
 	pkg, err := GetPackage(packageName)
 
 	if err != nil {
