@@ -120,7 +120,9 @@ func instrumentFunction(f *ast.FuncDecl) bool {
 	}
 
 	for _, arg := range f.Type.Params.List {
-		functionCalledArgs = append(functionCalledArgs, arg.Names[0])
+		for _, name := range arg.Names {
+			functionCalledArgs = append(functionCalledArgs, name)
+		}
 	}
 
 	initStmt := &ast.AssignStmt{
@@ -204,8 +206,14 @@ func instrumentInterfaceFunction(interfaceName string,
 
 	// set a name to each function argument
 	if funType.Params != nil {
-		for idx, arg := range funType.Params.List {
-			arg.Names = []*ast.Ident{makeIdent(fmt.Sprintf("arg%d", idx))}
+		var i = 0
+		for _, arg := range funType.Params.List {
+			names := make([]*ast.Ident, 0)
+			for _, _ = range arg.Names {
+				names = append(names, makeIdent(fmt.Sprintf("arg%d", i)))
+				i++
+			}
+			arg.Names = names
 		}
 	}
 

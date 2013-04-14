@@ -13,6 +13,10 @@ type TestEmbeddedInterface interface {
 	AnotherValue() string
 }
 
+type TestInterfaceMethodWithArgs interface {
+	Value(firstName, lastName string) string
+}
+
 type TestNoResultInterface interface {
 	Value(s string)
 }
@@ -20,6 +24,14 @@ type TestNoResultInterface interface {
 type TestNoArgNameInterface interface {
 	Value(string) string
 }
+
+type TestInterfaceMethodWithArgsImpl struct{}
+
+func (m *TestInterfaceMethodWithArgsImpl) Value(firstName, lastName string) string {
+	return firstName + lastName
+}
+
+var _ TestInterfaceMethodWithArgs = new(TestInterfaceMethodWithArgsImpl)
 
 type Foo struct {
 	Field string
