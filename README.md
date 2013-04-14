@@ -21,7 +21,7 @@ to intercept function calls and do some interesting stuff.
 ## Usage Example
 
 The examples below use gocheck as the test framework. To stub a
-function you call `gomock.Mock(FunctionName[, matchers])[.Return(returnValues)]`
+function you call `When(FunctionName([matchers])[.Return(returnValues)]`
 where:
 
 1. `matchers` are the argument matchers, currently we only support
@@ -29,13 +29,12 @@ where:
    iff the matcher value wasn't a pointer and the argument equals
    the matcher value using reflect.DeepEquals, or the matcher value
    was a pointer and it is equal to the argument using `==`
-2. `returnValues` can be any number of return values
-3. Currently gomock doesn't check whether the matchers, or returnValues
+2. `returnValues` can be any number of return values (or even omitted)
+3. `When` can be omitted if there's no a `Return` clause.
+4. Currently gomock doesn't check that the returnValues
    makes sense. That means that your test may compile but panics during
    runtime.
-4. Make sure you run gomock.ResetMocks() after each test
-5. When stubbing functions with receivers, the first argument
-   in the matchers is the receiver.
+5. Make sure you run ResetMocks() after each test
 
 ### Stubbing functions wo a receiver
 
@@ -112,6 +111,7 @@ that type.
 
 ## TODO
 
+* Enhance the documentation of both the code and usage of the library
 * Add more matchers, so we can do interesting things like match on a prefix, etc.
 * Add a way to pass a new function that decides what to return to the caller
 * Ability to exclude certain packages from being instrumented
