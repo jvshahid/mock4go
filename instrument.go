@@ -26,9 +26,7 @@ const GoMockImport = "github.com/jvshahid/gomock"
 
 func AddGoMockImport(f *ast.File) {
 	importSpec := &ast.ImportSpec{
-		Name: &ast.Ident{
-			Name: "gomock",
-		},
+		Name: makeIdent("gomock"),
 		Path: &ast.BasicLit{
 			Kind:  token.STRING,
 			Value: fmt.Sprintf("%#v", GoMockImport),
@@ -44,18 +42,14 @@ func AddGoMockImport(f *ast.File) {
 
 func functionName(f *ast.FuncDecl) ast.Expr {
 	if f.Recv == nil {
-		return &ast.Ident{
-			Name: f.Name.Name,
-		}
+		return makeIdent(f.Name.Name)
 	}
 	return &ast.BinaryExpr{
 		X: &ast.ParenExpr{
 			X: f.Recv.List[0].Type,
 		},
 		Op: token.PERIOD,
-		Y: &ast.Ident{
-			Name: f.Name.Name,
-		},
+		Y:  makeIdent(f.Name.Name),
 	}
 }
 
@@ -68,19 +62,19 @@ func functionReturnExprs(f *ast.FuncDecl, stmts []ast.Stmt) []ast.Stmt {
 
 	for idx, variable := range f.Type.Results.List {
 		value := &ast.IndexExpr{
-			X:     &ast.Ident{Name: "values"},
-			Index: &ast.Ident{Name: strconv.Itoa(idx)},
+			X:     makeIdent("values"),
+			Index: makeIdent(strconv.Itoa(idx)),
 		}
 		stmts = append(stmts, &ast.IfStmt{
 			Cond: &ast.BinaryExpr{
 				X:  value,
 				Op: token.NEQ,
-				Y:  &ast.Ident{Name: "nil"},
+				Y:  makeIdent("nil"),
 			},
 			Body: &ast.BlockStmt{
 				List: []ast.Stmt{
 					&ast.AssignStmt{
-						Lhs: []ast.Expr{&ast.Ident{Name: fmt.Sprintf("_temp%d", idx)}},
+						Lhs: []ast.Expr{makeIdent(fmt.Sprintf("_temp%d", idx))},
 						Tok: token.ASSIGN,
 						Rhs: []ast.Expr{
 							&ast.TypeAssertExpr{
@@ -131,39 +125,25 @@ func instrumentFunction(f *ast.FuncDecl) bool {
 
 	initStmt := &ast.AssignStmt{
 		Lhs: []ast.Expr{
-			&ast.Ident{
-				Name: returnValues,
-			},
-			&ast.Ident{
-				Name: "ok",
-			},
-			&ast.Ident{
-				Name: "err",
-			},
+			makeIdent(returnValues),
+			makeIdent("ok"),
+			makeIdent("err"),
 		},
 		Tok: token.DEFINE,
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
-				Fun: &ast.Ident{
-					Name: "gomock.FunctionCalled",
-				},
+				Fun:  makeIdent("gomock.FunctionCalled"),
 				Args: functionCalledArgs,
 			},
 		},
 	}
 	condStmt := &ast.BinaryExpr{
-		X: &ast.Ident{
-			Name: "ok",
-		},
+		X:  makeIdent("ok"),
 		Op: token.LAND,
 		Y: &ast.BinaryExpr{
-			X: &ast.Ident{
-				Name: "err",
-			},
+			X:  makeIdent("err"),
 			Op: token.EQL,
-			Y: &ast.Ident{
-				Name: "nil",
-			},
+			Y:  makeIdent("nil"),
 		},
 	}
 	bodyStmt := &ast.BlockStmt{
@@ -198,20 +178,14 @@ func declareReturnValuesVariables(funType *ast.FuncType) ([]ast.Stmt, []ast.Expr
 		for idx, returnValue := range funType.Results.List {
 			// add a declaration
 			name := fmt.Sprintf("_temp%d", idx)
-			returnVariables = append(returnVariables, &ast.Ident{
-				Name: name,
-			})
+			returnVariables = append(returnVariables, makeIdent(name))
 			stmts = append(stmts, &ast.DeclStmt{
 				Decl: &ast.GenDecl{
 					Tok: token.VAR,
 					Specs: []ast.Spec{
 						&ast.ValueSpec{
-							Type: returnValue.Type,
-							Names: []*ast.Ident{
-								&ast.Ident{
-									Name: name,
-								},
-							},
+							Type:  returnValue.Type,
+							Names: []*ast.Ident{makeIdent(name)},
 						},
 					},
 				},
@@ -231,11 +205,7 @@ func instrumentInterfaceFunction(interfaceName string,
 	// set a name to each function argument
 	if funType.Params != nil {
 		for idx, arg := range funType.Params.List {
-			arg.Names = []*ast.Ident{
-				&ast.Ident{
-					Name: fmt.Sprintf("arg%d", idx),
-				},
-			}
+			arg.Names = []*ast.Ident{makeIdent(fmt.Sprintf("arg%d", idx))}
 		}
 	}
 
@@ -248,15 +218,9 @@ func instrumentInterfaceFunction(interfaceName string,
 		Recv: &ast.FieldList{
 			List: []*ast.Field{
 				&ast.Field{
-					Names: []*ast.Ident{
-						&ast.Ident{
-							Name: "recv",
-						},
-					},
+					Names: []*ast.Ident{makeIdent("recv")},
 					Type: &ast.StarExpr{
-						X: &ast.Ident{
-							Name: "Mock" + interfaceName,
-						},
+						X: makeIdent("Mock" + interfaceName),
 					},
 				},
 			},
@@ -282,9 +246,8 @@ func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
 			structFunctions = append(structFunctions, fun)
 		case *ast.Ident:
 			fmt.Printf("x = %s, type = %v\n", x.Name, fun.Type)
-			ident := &ast.Ident{Name: "Mock" + x.Name}
 			structEmbedded = append(structEmbedded, &ast.Field{
-				Type: ident,
+				Type: makeIdent("Mock" + x.Name),
 			})
 		}
 	}
@@ -294,9 +257,7 @@ func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
 			Tok: token.TYPE,
 			Specs: []ast.Spec{
 				&ast.TypeSpec{
-					Name: &ast.Ident{
-						Name: "Mock" + name,
-					},
+					Name: makeIdent("Mock" + name),
 					Type: &ast.StructType{
 						Fields: &ast.FieldList{
 							List: structEmbedded,
