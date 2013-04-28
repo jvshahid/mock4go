@@ -18,6 +18,12 @@ approach. gomock will create an instrumented copy of the code and
 run go test using the new copy. This allows gomock to insert code
 to intercept function calls and do some interesting stuff.
 
+## Disclaimer
+
+This library is still a work in progress and has some rough edges. I encourage
+you to start using it and contribute back or share your experience in order
+to improve it.
+
 ## Usage Example
 
 The examples below use gocheck as the test framework. To stub a
