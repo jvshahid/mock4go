@@ -19,4 +19,9 @@ function test_package {
     $bindir/run.sh $1
 }
 
-test_package test && test_package testc && test_package testnomock
+if ! (test_package test && test_package testc && test_package testnomock); then
+    echo "************************* TEST FAILED *******************************"
+    exit 1
+fi
+
+exit 0
