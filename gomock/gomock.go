@@ -113,10 +113,6 @@ func parseArgs() (*Args, error) {
 	args.packages = packages
 	args.testArgs = testArgs
 
-	if len(args.packages) == 0 {
-		return nil, fmt.Errorf("Empty list of packages")
-	}
-
 	return args, nil
 }
 
@@ -154,10 +150,17 @@ Examples:
 func run() int {
 	args, err := parseArgs()
 	fmt.Printf("args: %#v\n", args)
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		printUsage()
-		return 1
+		return 2
+	}
+
+	if len(args.packages) == 0 {
+		fmt.Fprintf(os.Stderr, "No packages was specified on the command line", err)
+		printUsage()
+		return 2
 	}
 
 	tmpDir, err := createTempDir(args)
@@ -174,7 +177,7 @@ func run() int {
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot create temporary directory. Error: %s\n", err)
-		return 1
+		return 2
 	}
 
 	pkgs := make([]string, 0, len(args.packages))

@@ -24,6 +24,16 @@ This library is still a work in progress and has some rough edges. I encourage
 you to start using it and contribute back or share your experience in order
 to improve it.
 
+## Install
+
+`go get github.com/jvshahid/gomock/gomock`
+
+## Running the tests
+
+`./bin/gomock my_package`
+
+For further help run `./bin/gomock`.
+
 ## Usage Example
 
 The examples below use gocheck as the test framework. To stub a
