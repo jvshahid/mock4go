@@ -102,6 +102,56 @@ func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 }
 ```
 
+### Using matchers
+
+gomock allows you to write your own argument matchers.
+
+
+```GO
+func MultipleReturnValuesNoReceiver(value string) (string, error) {
+	return value, nil
+}
+```
+
+```GO
+type PrefixMatcher struct {
+	value string
+}
+
+func (m *PrefixMatcher) Matches(other interface{}) bool {
+	return strings.HasPrefix(other.(string), m.value)
+}
+
+func (suite *GoMockSuite) TestMockingWithMatchers(c *C) {
+	expectedErr := errors.New("foobar")
+	Mock(func() {
+		When(MultipleReturnValuesNoReceiver("")).
+			WithMatchers(&PrefixMatcher{value: "ba"}). // ignore the values passed before and use the matcher instead
+			Return("foobar", expectedErr)
+	})
+	val, err := MultipleReturnValuesNoReceiver("foo")
+	c.Assert(err, IsNil)
+	c.Assert(val, Equals, "foo")
+	val, err = MultipleReturnValuesNoReceiver("bar")
+	c.Assert(err, Equals, expectedErr)
+	c.Assert(val, Equals, "foobar")
+	val, err = MultipleReturnValuesNoReceiver("baz")
+	c.Assert(err, Equals, expectedErr)
+	c.Assert(val, Equals, "foobar")
+}
+```
+
+The reason you have to call the function with a dummy value is that there is no way to reliably compare
+function pointers in Go. A preferred way to do this is the following:
+
+```GO
+When(FunctionName, NewPrefixMatcher("ba")).Return("something")
+```
+
+but this will require the ability to test for "function" equality in gomock which can't be reliably
+done. See the `Equality` section http://golang.org/doc/go1.html for more information about why
+it was decided to remove function equality in Go 1.0.
+
 ### Stubbing interfaces
 
 gomock will create a mock implementation for every interface it parses.
