@@ -51,7 +51,15 @@ func main() {
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-		os.Exit(1)
+		os.Exit(2)
 	}
-	proc.Wait()
+	status, err := proc.Wait()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		os.Exit(2)
+	}
+	if status.Success() {
+		os.Exit(0)
+	}
+	os.Exit(1)
 }
