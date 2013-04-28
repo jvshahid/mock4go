@@ -6,6 +6,7 @@ import (
 	. "launchpad.net/gocheck"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -79,6 +80,32 @@ func (suite *GoMockSuite) TestMockingFunctionsWithMultipleReturnValuesAndNoRecei
 	c.Assert(err, IsNil)
 	c.Assert(val, Equals, "foo")
 	val, err = MultipleReturnValuesNoReceiver("bar")
+	c.Assert(err, Equals, expectedErr)
+	c.Assert(val, Equals, "foobar")
+}
+
+type PrefixMatcher struct {
+	value string
+}
+
+func (m *PrefixMatcher) Matches(other interface{}) bool {
+	return strings.HasPrefix(other.(string), m.value)
+}
+
+func (suite *GoMockSuite) TestMockingWithMatchers(c *C) {
+	expectedErr := errors.New("foobar")
+	Mock(func() {
+		When(MultipleReturnValuesNoReceiver("")).
+			WithMatchers(&PrefixMatcher{value: "ba"}). // ignore the values passed before and use the matcher instead
+			Return("foobar", expectedErr)
+	})
+	val, err := MultipleReturnValuesNoReceiver("foo")
+	c.Assert(err, IsNil)
+	c.Assert(val, Equals, "foo")
+	val, err = MultipleReturnValuesNoReceiver("bar")
+	c.Assert(err, Equals, expectedErr)
+	c.Assert(val, Equals, "foobar")
+	val, err = MultipleReturnValuesNoReceiver("baz")
 	c.Assert(err, Equals, expectedErr)
 	c.Assert(val, Equals, "foobar")
 }

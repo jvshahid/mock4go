@@ -9,7 +9,7 @@ type function interface{}
 var Map = make(map[function][]*functionCall)
 
 type functionCall struct {
-	args   []interface{}
+	args   []Matcher
 	values []interface{}
 }
 
@@ -35,6 +35,19 @@ func (m *functionCall) Return(values ...interface{}) *functionCall {
 	return m
 }
 
+type Matcher interface {
+	Matches(interface{}) bool
+}
+
+func (m *functionCall) WithMatchers(matchers ...Matcher) *functionCall {
+	if len(m.args) > len(matchers) {
+		m.args = append(matchers, m.args[len(matchers):]...)
+	} else {
+		m.args = matchers
+	}
+	return m
+}
+
 func addFunctionCall(funType interface{}, call *functionCall) {
 	Map[funType] = append(Map[funType], call)
 }
@@ -48,14 +61,41 @@ func ZeroValues(fun function) []interface{} {
 	return values
 }
 
+type EqualsMatcher struct {
+	value interface{}
+}
+
+func (m *EqualsMatcher) Matches(other interface{}) bool {
+	return reflect.DeepEqual(m.value, other)
+}
+
+type DeepEqualMatcher struct {
+	value interface{}
+}
+
+func (m *DeepEqualMatcher) Matches(other interface{}) bool {
+	return m.value == other
+}
+
 // Returns the (return values, true, nil) if the method/function is mocked
 // and the args match the expected values. Otherwise, it returns (nil, true, nil)
 // if there was an error this function returns (nil, false, error)
 func FunctionCalled(fun function, args ...interface{}) ([]interface{}, bool, error) {
 	funType := getFunType(fun)
 	if mocking {
+		argsMatchers := make([]Matcher, 0)
+
+		for _, arg := range args {
+			argType := reflect.TypeOf(arg)
+			if argType.Kind() == reflect.Ptr {
+				argsMatchers = append(argsMatchers, &EqualsMatcher{value: arg})
+			} else {
+				argsMatchers = append(argsMatchers, &DeepEqualMatcher{value: arg})
+			}
+		}
+
 		lastFunctionCall = &functionCall{
-			args: args,
+			args: argsMatchers,
 		}
 		addFunctionCall(funType, lastFunctionCall)
 		return ZeroValues(fun), true, nil
@@ -67,13 +107,7 @@ outer:
 			continue
 		}
 		for idx, arg := range call.args {
-			argType := reflect.TypeOf(args[idx])
-			if argType.Kind() == reflect.Ptr {
-				if arg != args[idx] {
-					continue outer
-				}
-			}
-			if !reflect.DeepEqual(arg, args[idx]) {
+			if !arg.Matches(args[idx]) {
 				continue outer
 			}
 		}
