@@ -10,24 +10,19 @@ import (
 )
 
 func createTempDir(args *Args) (string, error) {
-	var name string
-	if args.Destination != "" {
-		name = args.Destination
-	} else {
-		tmp := os.TempDir()
-		name = path.Join(tmp, "gomock", "src")
-	}
+	name := path.Join(args.Destination, "src")
 	return name, os.MkdirAll(name, os.ModePerm)
 }
 
 type Args struct {
-	Verbose     bool
-	Keep        bool
-	Destination string
-	cmd         []string // the command to run and its arguments
-	cmdArgs     []string // the command to run and its arguments
-	packages    []string // the list of packages
-	testArgs    []string // the arguments to the test binary
+	Verbose        bool
+	Keep           bool
+	InstrumentOnly bool
+	Destination    string
+	cmd            []string // the command to run and its arguments
+	cmdArgs        []string // the command to run and its arguments
+	packages       []string // the list of packages
+	testArgs       []string // the arguments to the test binary
 }
 
 func NewArgs() *Args {
@@ -37,20 +32,30 @@ func NewArgs() *Args {
 	}
 }
 
-func readGomockArgs(args *Args) int {
+func readGomockArgs(args *Args) (int, error) {
 	i := 1
-	for ; i < len(os.Args) && strings.HasPrefix("-", os.Args[i]); i++ {
+	for ; i < len(os.Args) && strings.HasPrefix(os.Args[i], "-"); i++ {
 		switch strings.ToLower(os.Args[i]) {
 		case "-k", "--keep":
 			args.Keep = true
 		case "-d", "--destination":
-			args.Destination = os.Args[i]
 			i++
+			args.Destination = os.Args[i]
 		case "-v", "--verbose":
 			args.Verbose = true
+		case "-i", "--instrument-only":
+			args.InstrumentOnly = true
 		}
 	}
-	return i
+
+	if args.Destination == "" {
+		args.Destination = path.Join(os.TempDir(), "gomock")
+	}
+
+	if args.InstrumentOnly && !args.Keep {
+		return -1, fmt.Errorf("Error: cannot use -i without -k")
+	}
+	return i, nil
 }
 
 func parseNamesAndArgs(lastIndex int) ([]string, []string, int) {
@@ -88,7 +93,10 @@ func fixArgs(args *Args) {
 
 func parseArgs() (*Args, error) {
 	args := NewArgs()
-	lastIdx := readGomockArgs(args)
+	lastIdx, err := readGomockArgs(args)
+	if err != nil {
+		return nil, err
+	}
 	// asssume that we have the command to run
 	cmd, cmdArgs, lastIdx := parseNamesAndArgs(lastIdx)
 	// if we reached the end of the arguments then we must have parsed the packages not the command
@@ -121,6 +129,7 @@ Where:
     -v: enable debug output
     -d|--destination: destination directory where instrumented code will be created
     -k|--keep: don't delete instrumented code after running the tests
+    -i|--instrument-only: don't run the tests, only instrument the code (error if used without -k)
   [test command]:
     The command to use to run the tests, e.g. gomock go test ...., or gomock gocov ....
     If not specified, it will default to 'go test'
@@ -142,26 +151,40 @@ Examples:
 	fmt.Printf(usage)
 }
 
-func main() {
+func run() int {
 	args, err := parseArgs()
-	fmt.Printf("args: %v\n", args)
+	fmt.Printf("args: %#v\n", args)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		printUsage()
-		os.Exit(1)
+		return 1
 	}
 
 	tmpDir, err := createTempDir(args)
 
+	defer func() {
+		if !args.Keep {
+			err := os.RemoveAll(args.Destination)
+			fmt.Printf("removing directory %s\n", args.Destination)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Cannot remove directory %s. Error: %s\n", args.Destination, err)
+			}
+		}
+	}()
+
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot create temporary directory. Error: %s", err)
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "Cannot create temporary directory. Error: %s\n", err)
+		return 1
 	}
 
 	pkgs := make([]string, 0, len(args.packages))
 
 	for _, packageName := range args.packages {
-		pkg := api.InstrumentPackage(packageName, tmpDir)
+		pkg, err := api.InstrumentPackage(packageName, tmpDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s", err)
+			return 2
+		}
 		pkgs = append(pkgs, pkg.Name)
 	}
 	api.InstrumentPackage(api.GoMockImport, tmpDir)
@@ -174,32 +197,36 @@ func main() {
 	goBinPath, err := exec.LookPath(args.cmd[0])
 	os.Setenv("GOPATH", strings.Replace(tmpDir, "/src", "", -1))
 
-	fmt.Printf("command: %v\n", cmd)
+	if !args.InstrumentOnly {
+		fmt.Printf("command: %v\n", cmd)
 
-	proc, err := os.StartProcess(goBinPath, cmd, &os.ProcAttr{
-		Env: os.Environ(),
-		Files: []*os.File{
-			os.Stdin,
-			os.Stdout,
-			os.Stderr,
-		},
-	})
-
-	if !args.Keep {
-		os.Remove(tmpDir)
+		proc, err := os.StartProcess(goBinPath, cmd, &os.ProcAttr{
+			Env: os.Environ(),
+			Files: []*os.File{
+				os.Stdin,
+				os.Stdout,
+				os.Stderr,
+			},
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			return 2
+		}
+		status, err := proc.Wait()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			return 2
+		}
+		if status.Success() {
+			return 0
+		}
+	} else {
+		return 0
 	}
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-		os.Exit(2)
-	}
-	status, err := proc.Wait()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-		os.Exit(2)
-	}
-	if status.Success() {
-		os.Exit(0)
-	}
-	os.Exit(1)
+	return 1
+}
+
+func main() {
+	os.Exit(run())
 }

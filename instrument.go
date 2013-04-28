@@ -341,26 +341,25 @@ func InstrumentFile(fileName string) (string, error) {
 
 var instrumented = make(map[string]*build.Package)
 
-func InstrumentPackage(packageName string, tmpDir string) *build.Package {
+func InstrumentPackage(packageName string, tmpDir string) (*build.Package, error) {
 	if pkg := instrumented[packageName]; pkg != nil {
-		return pkg
+		return pkg, nil
 	}
 
 	if packageName == "C" {
-		return nil
+		return nil, nil
 	}
 
 	pkg, err := GetPackage(packageName)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 
 	instrumented[packageName] = pkg
 
 	if pkg.Goroot {
-		return pkg
+		return pkg, nil
 	}
 
 	fmt.Fprintf(os.Stderr, "instrumenting package %s\n", packageName)
@@ -371,9 +370,7 @@ func InstrumentPackage(packageName string, tmpDir string) *build.Package {
 	for _, importPackageName := range pkg.TestImports {
 		InstrumentPackage(importPackageName, tmpDir)
 	}
-	InstrumentPackageRecur(pkg, tmpDir, make(map[string]bool))
-
-	return pkg
+	return pkg, InstrumentPackageRecur(pkg, tmpDir, make(map[string]bool))
 }
 
 func copyPackage(pkg *build.Package, tmpDir string) error {
@@ -419,15 +416,14 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[string]bool) {
+func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[string]bool) (err error) {
 	if instrumented[pkg.Name] {
 		return
 	}
 
-	err := copyPackage(pkg, tmpDir)
+	err = copyPackage(pkg, tmpDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s", err)
-		os.Exit(1)
+		return
 	}
 
 	// copy only, don't instrument gomock
@@ -440,19 +436,17 @@ func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[
 		fileName := path.Join(tmpDir, pkg.ImportPath, file)
 		content, err := InstrumentFile(fileName)
 		if err != nil {
-			fmt.Printf("Error: %s\n", err)
-			os.Exit(1)
+			return err
 		}
 		file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			os.Exit(1)
+			return err
 		}
 		_, err = file.Write([]byte(content))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			os.Exit(1)
+			return err
 		}
 		file.Close()
 	}
+	return nil
 }
