@@ -3,8 +3,8 @@
 When I started writing gomock, there were two other projects
 [here](http://godoc.org/code.google.com/p/gomock/gomock) and
 [here](https://github.com/jacobsa/gomock) that took a similar approach.
-The approach is to generate source code for interfaces using a provided
-tool and use their api to specify expectations.
+The approach is to manually generate source code for interfaces using a provided
+tool.
 
 I didn't like this approach for the following reasons:
 
