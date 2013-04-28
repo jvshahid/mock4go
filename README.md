@@ -149,7 +149,7 @@ When(FunctionName, NewPrefixMatcher("ba")).Return("something")
 ```
 
 but this will require the ability to test for "function" equality in gomock which can't be reliably
-done. See the `Equality` section http://golang.org/doc/go1.html for more information about why
+done. See http://golang.org/doc/go1.html#equality for more information about why
 it was decided to remove function equality in Go 1.0.
 
 ### Stubbing interfaces
