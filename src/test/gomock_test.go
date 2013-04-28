@@ -114,7 +114,7 @@ func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 	foo := &Foo{Field: ""}
 	bar := &Foo{Field: ""}
 	Mock(func() {
-		bar.NoReturnValues("bar")
+		bar.NoReturnValues("bar") // cause the function to be a no operation
 	})
 	foo.NoReturnValues("foo")
 	bar.NoReturnValues("bar")
