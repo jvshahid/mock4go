@@ -1,11 +1,11 @@
 *~
 src/launchpad.net/
 *.a
-/gomock
-!gomock/
+/mock4go
+!mock4go/
 /test
 /main
 *.test
-gomock.test
+mock4go.test
 TAGS
-src/github.com/jvshahid/gomock
+src/github.com/jvshahid/mock4go

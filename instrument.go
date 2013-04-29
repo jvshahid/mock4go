@@ -22,14 +22,14 @@ func makeIdent(name string) *ast.Ident {
 	return &ast.Ident{Name: name}
 }
 
-const GoMockImport = "github.com/jvshahid/gomock"
+const Mock4goImport = "github.com/jvshahid/mock4go"
 
-func AddGoMockImport(f *ast.File) {
+func AddMock4goImport(f *ast.File) {
 	importSpec := &ast.ImportSpec{
-		Name: makeIdent("gomock"),
+		Name: makeIdent("mock4go"),
 		Path: &ast.BasicLit{
 			Kind:  token.STRING,
-			Value: fmt.Sprintf("%#v", GoMockImport),
+			Value: fmt.Sprintf("%#v", Mock4goImport),
 		},
 	}
 
@@ -54,7 +54,7 @@ func functionName(f *ast.FuncDecl) ast.Expr {
 }
 
 // construct the return statement that converts the interface{} type
-// returned from gomock.FunctionCalled to the expected returned type
+// returned from mock4go.FunctionCalled to the expected returned type
 func functionReturnExprs(f *ast.FuncDecl, stmts []ast.Stmt) []ast.Stmt {
 	if f.Type.Results == nil {
 		return nil
@@ -91,7 +91,7 @@ func functionReturnExprs(f *ast.FuncDecl, stmts []ast.Stmt) []ast.Stmt {
 }
 
 // Programatically generate the following code:
-//    if value, ok, err := gomock.FunctionCalled(myFunctionName, args); ok && err != nil {
+//    if value, ok, err := mock4go.FunctionCalled(myFunctionName, args); ok && err != nil {
 //      return value[0].(Type1), value[1].(Type2)
 //    }
 // at the beginning of the given function declaration.
@@ -134,7 +134,7 @@ func instrumentFunction(f *ast.FuncDecl) bool {
 		Tok: token.DEFINE,
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
-				Fun:  makeIdent("gomock.FunctionCalled"),
+				Fun:  makeIdent("mock4go.FunctionCalled"),
 				Args: functionCalledArgs,
 			},
 		},
@@ -284,13 +284,13 @@ func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
 }
 
 func InstrumentFunctionsAndInterfaces(f *ast.File) bool {
-	addGoMockImport := false
+	addMock4goImport := false
 
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
 			if instrumentFunction(x) {
-				addGoMockImport = true
+				addMock4goImport = true
 			}
 			if x.Recv != nil {
 				// fieldList := x.Recv.List[0]
@@ -308,7 +308,7 @@ func InstrumentFunctionsAndInterfaces(f *ast.File) bool {
 						panic("incomplete interface type")
 					}
 					decls := instrumentInterface(typeSpec.Name.Name, interfaceType)
-					addGoMockImport = true
+					addMock4goImport = true
 					f.Decls = append(f.Decls, decls...)
 				}
 			}
@@ -316,7 +316,7 @@ func InstrumentFunctionsAndInterfaces(f *ast.File) bool {
 		return true
 	})
 
-	return addGoMockImport
+	return addMock4goImport
 }
 
 func InstrumentFile(fileName string) (string, error) {
@@ -328,7 +328,7 @@ func InstrumentFile(fileName string) (string, error) {
 		return "", err
 	}
 	if InstrumentFunctionsAndInterfaces(f) {
-		AddGoMockImport(f)
+		AddMock4goImport(f)
 	}
 	f.Comments = nil
 	buf := bytes.NewBufferString("")
@@ -426,8 +426,8 @@ func InstrumentPackageRecur(pkg *build.Package, tmpDir string, instrumented map[
 		return
 	}
 
-	// copy only, don't instrument gomock
-	if pkg.ImportPath == GoMockImport || pkg.ImportPath == "launchpad.net/gocheck" {
+	// copy only, don't instrument mock4go
+	if pkg.ImportPath == Mock4goImport || pkg.ImportPath == "launchpad.net/gocheck" {
 		return
 	}
 

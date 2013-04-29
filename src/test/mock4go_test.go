@@ -2,7 +2,7 @@ package test
 
 import (
 	"errors"
-	. "github.com/jvshahid/gomock"
+	. "github.com/jvshahid/mock4go"
 	. "launchpad.net/gocheck"
 	"os"
 	"reflect"
@@ -17,35 +17,35 @@ func Test(t *testing.T) {
 	TestingT(t)
 }
 
-type GoMockSuite struct{}
+type Mock4goSuite struct{}
 
-var _ = Suite(&GoMockSuite{})
+var _ = Suite(&Mock4goSuite{})
 
-func (suite *GoMockSuite) SetUpSuite(c *C) {
+func (suite *Mock4goSuite) SetUpSuite(c *C) {
 	// setup the suite
 }
 
-func (suite *GoMockSuite) SetUpTest(c *C) {
+func (suite *Mock4goSuite) SetUpTest(c *C) {
 	// setup the test
 }
 
-func (suite *GoMockSuite) TearDownTest(c *C) {
+func (suite *Mock4goSuite) TearDownTest(c *C) {
 	ResetMocks()
 }
 
-func (suite *GoMockSuite) TearDownSuite(c *C) {
+func (suite *Mock4goSuite) TearDownSuite(c *C) {
 	// tear down the suite
 }
 
-func (suite *GoMockSuite) TestEnvironment(c *C) {
-	c.Assert(os.Getenv("GOMOCK_TEST_ENV"), Equals, "gomock")
+func (suite *Mock4goSuite) TestEnvironment(c *C) {
+	c.Assert(os.Getenv("MOCK4GO_TEST_ENV"), Equals, "mock4go")
 }
 
-func (suite *GoMockSuite) TestNoMocking(c *C) {
+func (suite *Mock4goSuite) TestNoMocking(c *C) {
 	c.Assert(OneReturnValueNoReceiver(), Equals, "foo")
 }
 
-func (suite *GoMockSuite) TestBasicAssumptionsAboutFunctions(c *C) {
+func (suite *Mock4goSuite) TestBasicAssumptionsAboutFunctions(c *C) {
 	var fun Function = NoReturnValuesNoReceiver
 	var fun2 Function = NoReturnValuesNoReceiver
 	var fun3 Function = NoReturnValuesNoReceiver2
@@ -53,7 +53,7 @@ func (suite *GoMockSuite) TestBasicAssumptionsAboutFunctions(c *C) {
 	c.Assert(reflect.ValueOf(fun), Not(Equals), reflect.ValueOf(fun3))
 }
 
-func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValuesAndNoReceiver(c *C) {
+func (suite *Mock4goSuite) TestMockingFunctionWithNoReturnValuesAndNoReceiver(c *C) {
 	NoReturnValuesNoReceiver("foo")
 	c.Assert(noReturnValues, Equals, "foo")
 	Mock(func() {
@@ -63,7 +63,7 @@ func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValuesAndNoReceiver(c *
 	c.Assert(noReturnValues, Equals, "foo")
 }
 
-func (suite *GoMockSuite) TestMockingFunctionsWithOneReturnValueAndNoReceiver(c *C) {
+func (suite *Mock4goSuite) TestMockingFunctionsWithOneReturnValueAndNoReceiver(c *C) {
 	Mock(func() {
 		When(OneReturnValueNoReceiver()).Return("bar")
 	})
@@ -71,7 +71,7 @@ func (suite *GoMockSuite) TestMockingFunctionsWithOneReturnValueAndNoReceiver(c 
 	c.Assert(OneReturnValueNoReceiver2(), Equals, "foo2")
 }
 
-func (suite *GoMockSuite) TestMockingFunctionsWithMultipleReturnValuesAndNoReceiver(c *C) {
+func (suite *Mock4goSuite) TestMockingFunctionsWithMultipleReturnValuesAndNoReceiver(c *C) {
 	expectedErr := errors.New("foobar")
 	Mock(func() {
 		When(MultipleReturnValuesNoReceiver("bar")).Return("foobar", expectedErr)
@@ -92,7 +92,7 @@ func (m *PrefixMatcher) Matches(other interface{}) bool {
 	return strings.HasPrefix(other.(string), m.value)
 }
 
-func (suite *GoMockSuite) TestMockingWithMatchers(c *C) {
+func (suite *Mock4goSuite) TestMockingWithMatchers(c *C) {
 	expectedErr := errors.New("foobar")
 	Mock(func() {
 		When(MultipleReturnValuesNoReceiver("")).
@@ -110,7 +110,7 @@ func (suite *GoMockSuite) TestMockingWithMatchers(c *C) {
 	c.Assert(val, Equals, "foobar")
 }
 
-func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
+func (suite *Mock4goSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 	foo := &Foo{Field: ""}
 	bar := &Foo{Field: ""}
 	Mock(func() {
@@ -123,7 +123,7 @@ func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 	c.Assert(bar.Field, Equals, "")
 }
 
-func (suite *GoMockSuite) TestMockingInterface(c *C) {
+func (suite *Mock4goSuite) TestMockingInterface(c *C) {
 	mock := &MockTestInterface{}
 	Mock(func() {
 		When(mock.Value()).Return("foo")
@@ -131,7 +131,7 @@ func (suite *GoMockSuite) TestMockingInterface(c *C) {
 	c.Assert(mock.Value(), Equals, "foo")
 }
 
-func (suite *GoMockSuite) TestMockingNoResultInterface(c *C) {
+func (suite *Mock4goSuite) TestMockingNoResultInterface(c *C) {
 	mock := &MockTestNoResultInterface{}
 	Mock(func() {
 		mock.Value("foo")
@@ -139,7 +139,7 @@ func (suite *GoMockSuite) TestMockingNoResultInterface(c *C) {
 	mock.Value("foo")
 }
 
-func (suite *GoMockSuite) TestMockingNoArgNameInterface(c *C) {
+func (suite *Mock4goSuite) TestMockingNoArgNameInterface(c *C) {
 	mock := &MockTestNoArgNameInterface{}
 	Mock(func() {
 		When(mock.Value("foo")).Return("bar")
@@ -147,7 +147,7 @@ func (suite *GoMockSuite) TestMockingNoArgNameInterface(c *C) {
 	c.Assert(mock.Value("foo"), Equals, "bar")
 }
 
-func (suite *GoMockSuite) TestMockingEmbeddedInterface(c *C) {
+func (suite *Mock4goSuite) TestMockingEmbeddedInterface(c *C) {
 	mock := &MockTestEmbeddedInterface{}
 	Mock(func() {
 		When(mock.Value()).Return("foo")

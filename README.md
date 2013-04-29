@@ -1,6 +1,6 @@
 ## Why another mocking library for GO
 
-When I started writing gomock, there were two other projects
+When I started writing mock4go, there were two other projects
 [here](http://godoc.org/code.google.com/p/gomock/gomock) and
 [here](https://github.com/jacobsa/gomock) that took a similar approach.
 The approach is to manually generate source code for interfaces using a provided
@@ -14,8 +14,8 @@ interfaces that will be used in testing.
 
 I decided to take a different approach after using
 [gocov](https://github.com/axw/gocov) and being inspired by their
-approach. gomock will create an instrumented copy of the code and
-run go test using the new copy. This allows gomock to insert code
+approach. mock4go will create an instrumented copy of the code and
+run go test using the new copy. This allows mock4go to insert code
 to intercept function calls and do some interesting stuff.
 
 ## Disclaimer
@@ -26,13 +26,13 @@ to improve it.
 
 ## Install
 
-`go get github.com/jvshahid/gomock/gomock`
+`go get github.com/jvshahid/mock4go/mock4go`
 
 ## Running the tests
 
-`./bin/gomock my_package`
+`./bin/mock4go my_package`
 
-For further help run `./bin/gomock`.
+For further help run `./bin/mock4go`.
 
 ## Usage Example
 
@@ -47,7 +47,7 @@ where:
    was a pointer and it is equal to the argument using `==`
 2. `returnValues` can be any number of return values (or even omitted)
 3. `When` can be omitted if there's no a `Return` clause.
-4. Currently gomock doesn't check that the returnValues
+4. Currently mock4go doesn't check that the returnValues
    makes sense. That means that your test may compile but panics during
    runtime.
 5. Make sure you run ResetMocks() after each test
@@ -68,20 +68,20 @@ We can stub in the test like this:
 package apackage
 
 import (
-	. "github.com/jvshahid/gomock"
+	. "github.com/jvshahid/mock4go"
 	. "launchpad.net/gocheck"
 	"testing"
 )
 
-type GoMockSuite struct{}
+type Mock4goSuite struct{}
 
-var _ = Suite(&GoMockSuite{})
+var _ = Suite(&Mock4goSuite{})
 
-func (suite *GoMockSuite) TearDownTest(c *C) {
+func (suite *Mock4goSuite) TearDownTest(c *C) {
 	ResetMocks()
 }
 
-func (suite *GoMockSuite) TestMockingFunctionsWithOneReturnValueAndNoReceiver(c *C) {
+func (suite *Mock4goSuite) TestMockingFunctionsWithOneReturnValueAndNoReceiver(c *C) {
 	Mock(func() {
 		When(OneReturnValueNoReceiver()).Return("bar")
 	})
@@ -104,7 +104,7 @@ func (f *Foo) NoReturnValues(value string) {
 ```
 
 ```GO
-func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
+func (suite *Mock4goSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 	foo := &Foo{Field: ""}
 	bar := &Foo{Field: ""}
 	Mock(func() {
@@ -120,7 +120,7 @@ func (suite *GoMockSuite) TestMockingFunctionWithNoReturnValues(c *C) {
 
 ### Using matchers
 
-gomock allows you to write your own argument matchers.
+mock4go allows you to write your own argument matchers.
 
 
 ```GO
@@ -138,7 +138,7 @@ func (m *PrefixMatcher) Matches(other interface{}) bool {
 	return strings.HasPrefix(other.(string), m.value)
 }
 
-func (suite *GoMockSuite) TestMockingWithMatchers(c *C) {
+func (suite *Mock4goSuite) TestMockingWithMatchers(c *C) {
 	expectedErr := errors.New("foobar")
 	Mock(func() {
 		When(MultipleReturnValuesNoReceiver("")).
@@ -164,13 +164,13 @@ function pointers in Go. A preferred way to do this is the following:
 When(FunctionName, NewPrefixMatcher("ba")).Return("something")
 ```
 
-but this will require the ability to test for "function" equality in gomock which can't be reliably
+but this will require the ability to test for "function" equality in mock4go which can't be reliably
 done. See http://golang.org/doc/go1.html#equality for more information about why
 it was decided to remove function equality in Go 1.0.
 
 ### Stubbing interfaces
 
-gomock will create a mock implementation for every interface it parses.
+mock4go will create a mock implementation for every interface it parses.
 If the interface is called `FooInterface` the generated type will be called
 `MockFooInterface`, and all the interface's functions will be defined for
 that type.

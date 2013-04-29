@@ -1,7 +1,7 @@
 package testnomock
 
-// make sure gomock is copied to the temp directory when a package doesn't import
-// gomock.
+// make sure mock4go is copied to the temp directory when a package doesn't import
+// mock4go.
 
 func SomeFunction() {}
 

@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	_ "github.com/axw/gocov"
 )
 
 type TestInterface interface {

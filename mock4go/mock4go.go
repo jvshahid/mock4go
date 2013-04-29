@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/jvshahid/gomock"
+	"github.com/jvshahid/mock4go"
 	"os"
 	"os/exec"
 	"path"
@@ -32,7 +32,7 @@ func NewArgs() *Args {
 	}
 }
 
-func readGomockArgs(args *Args) (int, error) {
+func readMock4goArgs(args *Args) (int, error) {
 	i := 1
 	for ; i < len(os.Args) && strings.HasPrefix(os.Args[i], "-"); i++ {
 		switch strings.ToLower(os.Args[i]) {
@@ -49,7 +49,7 @@ func readGomockArgs(args *Args) (int, error) {
 	}
 
 	if args.Destination == "" {
-		args.Destination = path.Join(os.TempDir(), "gomock")
+		args.Destination = path.Join(os.TempDir(), "mock4go")
 	}
 
 	if args.InstrumentOnly && !args.Keep {
@@ -93,7 +93,7 @@ func fixArgs(args *Args) {
 
 func parseArgs() (*Args, error) {
 	args := NewArgs()
-	lastIdx, err := readGomockArgs(args)
+	lastIdx, err := readMock4goArgs(args)
 	if err != nil {
 		return nil, err
 	}
@@ -118,16 +118,16 @@ func parseArgs() (*Args, error) {
 
 func printUsage() {
 	usage := `
-Usage: gomock [gomock arguments] [test command] [test command arguments] [--] [package names] [test binary args]
+Usage: mock4go [mock4go arguments] [test command] [test command arguments] [--] [package names] [test binary args]
 
 Where:
-  [gomock arguments]:
+  [mock4go arguments]:
     -v: enable debug output
     -d|--destination: destination directory where instrumented code will be created
     -k|--keep: don't delete instrumented code after running the tests
     -i|--instrument-only: don't run the tests, only instrument the code (error if used without -k)
   [test command]:
-    The command to use to run the tests, e.g. gomock go test ...., or gomock gocov ....
+    The command to use to run the tests, e.g. mock4go go test ...., or mock4go gocov ....
     If not specified, it will default to 'go test'
   [test command arguments]:
     The test command arguments, see the usage help for the command you use for testing
@@ -140,9 +140,9 @@ Where:
     The arguments to pass the test binary created.
 
 Examples:
-  gomock go test -v db -database=localhost:8080 (use the go test command with -v argument to test the db package)
-  gomock gocov -v db -database=localhost:8080   (use gocov instead)
-  gomock db -database=localhost:8080            (default to go test if the test command wasn't specified)
+  mock4go go test -v db -database=localhost:8080 (use the go test command with -v argument to test the db package)
+  mock4go gocov -v db -database=localhost:8080   (use gocov instead)
+  mock4go db -database=localhost:8080            (default to go test if the test command wasn't specified)
 `
 	fmt.Printf(usage)
 }
@@ -190,7 +190,7 @@ func run() int {
 		}
 		pkgs = append(pkgs, pkg.Name)
 	}
-	api.InstrumentPackage(api.GoMockImport, tmpDir)
+	api.InstrumentPackage(api.Mock4goImport, tmpDir)
 
 	// run the tests
 	cmd := args.cmd

@@ -10,24 +10,26 @@ cd `dirname $0`/..
 
 go get -v "launchpad.net/gocheck"
 
-rm -rf /tmp/gomock
+rm -rf /tmp/mock4go
 
 echo "gopath: $GOPATH"
 
-export GOMOCK_TEST_ENV=gomock   # make sure we pass the environment properly
+export MOCK4GO_TEST_ENV=mock4go   # make sure we pass the environment properly
 
 function test_package {
-    go run gomock/gomock.go "$@"
-    if [ -d $TMPDIR/gomock ];then
-        echo "gomock didn't cleanup the gomock directory. WTF"
+    go run mock4go/mock4go.go "$@"
+    status=$?
+    if [ -d $TMPDIR/mock4go ];then
+        echo "mock4go didn't cleanup the mock4go directory. WTF"
         exit 1
     fi
+    return $status
 }
 
 if [ "x$TMPDIR" == "x" ]; then
     TMPDIR=/tmp
 fi
-destination=$TMPDIR/gomock_$BASHPID
+destination=$TMPDIR/mock4go_$BASHPID
 
 function cleanup {
     rm -rf $destination
@@ -43,7 +45,7 @@ fi
 
 trap - EXIT
 if [ ! -d $destination ];then
-    echo "Cannot find $destination although we ran gomock with -i and -k"
+    echo "Cannot find $destination although we ran mock4go with -i and -k"
     echo "************************* TEST FAILED *******************************"
     exit 1
 fi

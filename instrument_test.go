@@ -9,17 +9,17 @@ func Test(t *testing.T) {
 	TestingT(t)
 }
 
-type GoMockTestSuite struct {
+type Mock4goTestSuite struct {
 }
 
-func (suite *GoMockTestSuite) SetUpTest(c *C) {
+func (suite *Mock4goTestSuite) SetUpTest(c *C) {
 }
 
-func (suite *GoMockTestSuite) TearDownTest(c *C) {
+func (suite *Mock4goTestSuite) TearDownTest(c *C) {
 }
 
-var _ = Suite(&GoMockTestSuite{})
+var _ = Suite(&Mock4goTestSuite{})
 
-func (s *GoMockTestSuite) TestInstrumentFile(c *C) {
+func (s *Mock4goTestSuite) TestInstrumentFile(c *C) {
 	c.Fail()
 }

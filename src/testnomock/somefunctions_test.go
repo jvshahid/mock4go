@@ -12,10 +12,10 @@ func Test(t *testing.T) {
 	TestingT(t)
 }
 
-type GoMockSuite struct{}
+type Mock4goSuite struct{}
 
-var _ = Suite(&GoMockSuite{})
+var _ = Suite(&Mock4goSuite{})
 
-func (suite *GoMockSuite) TestAnotherFunction(c *C) {
+func (suite *Mock4goSuite) TestAnotherFunction(c *C) {
 	c.Assert(AnotherFunction(), Equals, 2)
 }
