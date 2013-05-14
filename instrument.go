@@ -253,7 +253,7 @@ func instrumentInterface(name string, intrface *ast.InterfaceType) []ast.Decl {
 		case *ast.FuncType:
 			structFunctions = append(structFunctions, fun)
 		case *ast.Ident:
-			fmt.Printf("x = %s, type = %v\n", x.Name, fun.Type)
+			Log("x = %s, type = %v\n", x.Name, fun.Type)
 			structEmbedded = append(structEmbedded, &ast.Field{
 				Type: makeIdent("Mock" + x.Name),
 			})
@@ -320,7 +320,7 @@ func InstrumentFunctionsAndInterfaces(f *ast.File) bool {
 }
 
 func InstrumentFile(fileName string) (string, error) {
-	fmt.Fprintf(os.Stderr, "instrumenting file %s\n", fileName)
+	Log("instrumenting file %s\n", fileName)
 	// Create the AST by parsing src.
 	fset := token.NewFileSet() // positions are relative to fset
 	f, err := parser.ParseFile(fset, fileName, nil, 0)
@@ -362,7 +362,7 @@ func InstrumentPackage(packageName string, tmpDir string) (*build.Package, error
 		return pkg, nil
 	}
 
-	fmt.Fprintf(os.Stderr, "instrumenting package %s\n", packageName)
+	Log("instrumenting package %s\n", packageName)
 
 	for _, importPackageName := range pkg.Imports {
 		InstrumentPackage(importPackageName, tmpDir)

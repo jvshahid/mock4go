@@ -149,7 +149,9 @@ Examples:
 
 func run() int {
 	args, err := parseArgs()
-	fmt.Printf("args: %#v\n", args)
+	api.Log("args: %#v\n", args)
+
+	api.SetVerbosity(args.Verbose)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -168,7 +170,7 @@ func run() int {
 	defer func() {
 		if !args.Keep {
 			err := os.RemoveAll(args.Destination)
-			fmt.Printf("removing directory %s\n", args.Destination)
+			api.Log("removing directory %s\n", args.Destination)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Cannot remove directory %s. Error: %s\n", args.Destination, err)
 			}
@@ -198,7 +200,7 @@ func run() int {
 	os.Setenv("GOPATH", strings.Replace(tmpDir, "/src", "", -1))
 
 	if !args.InstrumentOnly {
-		fmt.Printf("command: %v\n", cmd)
+		api.Log("command: %v\n", cmd)
 
 		proc, err := os.StartProcess(goBinPath, cmd, &os.ProcAttr{
 			Env: os.Environ(),
