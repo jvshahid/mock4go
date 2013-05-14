@@ -180,22 +180,19 @@ func run() int {
 		return 2
 	}
 
-	pkgs := make([]string, 0, len(args.packages))
-
 	for _, packageName := range args.packages {
-		pkg, err := api.InstrumentPackage(packageName, tmpDir)
+		_, err := api.InstrumentPackage(packageName, tmpDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s", err)
 			return 2
 		}
-		pkgs = append(pkgs, pkg.Name)
 	}
 	api.InstrumentPackage(api.Mock4goImport, tmpDir)
 
 	// run the tests
 	cmd := args.cmd
 	cmd = append(cmd, args.cmdArgs...)
-	cmd = append(cmd, pkgs...)
+	cmd = append(cmd, args.packages...)
 	cmd = append(cmd, args.testArgs...)
 	goBinPath, err := exec.LookPath(args.cmd[0])
 	os.Setenv("GOPATH", strings.Replace(tmpDir, "/src", "", -1))
