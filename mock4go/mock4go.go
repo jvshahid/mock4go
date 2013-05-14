@@ -66,7 +66,6 @@ func parseNamesAndArgs(lastIndex int) ([]string, []string, int) {
 	i := lastIndex
 
 	for ; i < len(os.Args); i++ {
-		fmt.Printf("argument: %s\n", os.Args[i])
 		// do we have
 		if strings.HasPrefix(os.Args[i], "-") {
 			parsingArgs = true
